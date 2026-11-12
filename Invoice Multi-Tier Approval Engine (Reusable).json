@@ -1,0 +1,1099 @@
+{
+  "name": "Invoice Multi-Tier Approval Engine (Reusable)",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "invoice_id"
+            },
+            {
+              "name": "amount"
+            },
+            {
+              "name": "case_id"
+            },
+            {
+              "name": "requester_name"
+            },
+            {
+              "name": "requester_role"
+            },
+            {
+              "name": "notify_email"
+            },
+            {
+              "name": "created_at"
+            },
+            {
+              "name": "parent_execution_id"
+            },
+            {
+              "name": "record_type"
+            }
+          ]
+        }
+      },
+      "id": "8bc4fb95-2ec1-4049-b1d8-c164878b366c",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -1920,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "pac-1",
+              "name": "invoice_id",
+              "type": "string",
+              "value": "={{ $json.invoice_id || $json.record_id }}"
+            },
+            {
+              "id": "pac-2",
+              "name": "amount",
+              "type": "number",
+              "value": "={{ Number($json.amount) }}"
+            },
+            {
+              "id": "pac-3",
+              "name": "case_id",
+              "type": "string",
+              "value": "={{ ($json.case_id || '').toString().trim().toUpperCase() }}"
+            },
+            {
+              "id": "pac-4",
+              "name": "requester_name",
+              "type": "string",
+              "value": "={{ $json.requester_name || 'System Requester' }}"
+            },
+            {
+              "id": "pac-5",
+              "name": "requester_role",
+              "type": "string",
+              "value": "={{ $json.requester_role || 'Staff' }}"
+            },
+            {
+              "id": "pac-6",
+              "name": "notify_email",
+              "type": "string",
+              "value": "={{ $json.notify_email }}"
+            },
+            {
+              "id": "pac-7",
+              "name": "created_at",
+              "type": "string",
+              "value": "={{ $json.created_at || $now.toISO() }}"
+            },
+            {
+              "id": "pac-8",
+              "name": "parent_execution_id",
+              "type": "string",
+              "value": "={{ $json.parent_execution_id || $execution.id }}"
+            },
+            {
+              "id": "pac-9",
+              "name": "record_type",
+              "type": "string",
+              "value": "={{ $json.record_type || 'invoice' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7b001800-1106-45d4-8ea5-9a0b9827c6aa",
+      "name": "Prepare Approval Context",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1632,
+        368
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "cachedResultName": "workflow_settings",
+          "mode": "id",
+          "value": "={{ $vars.TABLE_WORKFLOW_SETTINGS || '0EmE2wSYP1pfCuMa' }}"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "record_type",
+              "keyValue": "invoice"
+            },
+            {
+              "keyName": "setting_key",
+              "keyValue": "auto_approve_threshold"
+            },
+            {
+              "keyName": "case_id",
+              "keyValue": "={{ $('Prepare Approval Context').item.json.case_id }}"
+            }
+          ]
+        },
+        "limit": 1
+      },
+      "id": "0da7acfe-8da9-4851-9f10-cedec5ac3f1f",
+      "name": "Get Case-Specific Threshold",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -1408,
+        368
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "3fd7a971-c4d7-4fa6-9f00-1d3ec97cd1f4",
+              "leftValue": "={{ $json.setting_value }}",
+              "operator": {
+                "operation": "notEmpty",
+                "type": "string"
+              },
+              "rightValue": ""
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          }
+        },
+        "options": {}
+      },
+      "id": "7f964d5d-7ee2-45ed-8601-f7d3a1414bcb",
+      "name": "Has Case-Specific Override?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1184,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "rule-auto-1",
+                    "leftValue": "={{ Number($('Prepare Approval Context').item.json.amount) }}",
+                    "operator": {
+                      "operation": "gt",
+                      "type": "number"
+                    },
+                    "rightValue": 0
+                  },
+                  {
+                    "id": "rule-auto-2",
+                    "leftValue": "={{ Number($('Prepare Approval Context').item.json.amount) }}",
+                    "operator": {
+                      "operation": "lte",
+                      "type": "number"
+                    },
+                    "rightValue": "={{ Number($json.setting_value || $vars.DEFAULT_AUTO_APPROVE_THRESHOLD) }}"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                }
+              },
+              "renameOutput": true,
+              "outputKey": "Auto-Approved"
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "rule-pending-1",
+                    "leftValue": "={{ Number($('Prepare Approval Context').item.json.amount) }}",
+                    "operator": {
+                      "operation": "gt",
+                      "type": "number"
+                    },
+                    "rightValue": "={{ Number($json.setting_value || $vars.DEFAULT_AUTO_APPROVE_THRESHOLD) }}"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                }
+              },
+              "renameOutput": true,
+              "outputKey": "Pending Approval"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Invalid Request"
+        }
+      },
+      "id": "ef6f53a0-b785-4b94-99f0-7a0517076763",
+      "name": "Evaluate Invoice Total",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -736,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Prepare Approval Context').item.json.notify_email }}",
+        "subject": "=Invoice {{ $('Prepare Approval Context').item.json.invoice_id }} - Received & Pending Approval",
+        "message": "={{ `<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; width: 100%; max-width: 520px; color: #202124; text-align: left; margin: 0 auto;\">\n  <p style=\"font-size: 14px; color: #3c4043; margin-bottom: 14px; text-align: left;\">\n    Hello <strong>${$('Prepare Approval Context').first().json.requester_name}</strong>,\n  </p>\n  <p style=\"font-size: 14px; color: #3c4043; margin-bottom: 16px; text-align: left;\">\n    Your invoice <strong>${$('Prepare Approval Context').first().json.invoice_id}</strong> has been received and exceeds the auto-approve threshold of <strong>₹${Number($('Evaluate Invoice Total').first().json.setting_value)}</strong>.\n  </p>\n  <table style=\"width: 100%; border-collapse: collapse; margin-bottom: 16px; background-color: #f8f9fa; border-radius: 8px; overflow: hidden; border: 1px solid #dadce0; text-align: left;\">\n    <tbody>\n      <tr style=\"border-bottom: 1px solid #e8eaed;\">\n        <td style=\"padding: 10px 14px; font-weight: 600; color: #5f6368; width: 35%; font-size: 13px; text-align: left; vertical-align: middle;\">Invoice ID</td>\n        <td style=\"padding: 10px 14px; color: #202124; font-size: 13px; font-weight: 500; text-align: left; vertical-align: middle;\">${$('Prepare Approval Context').first().json.invoice_id}</td>\n      </tr>\n      <tr style=\"border-bottom: 1px solid #e8eaed;\">\n        <td style=\"padding: 10px 14px; font-weight: 600; color: #5f6368; font-size: 13px; text-align: left; vertical-align: middle;\">Amount</td>\n        <td style=\"padding: 10px 14px; color: #1a73e8; font-size: 14px; font-weight: 700; text-align: left; vertical-align: middle;\">₹${$('Prepare Approval Context').first().json.amount}</td>\n      </tr>\n      <tr style=\"border-bottom: 1px solid #e8eaed;\">\n        <td style=\"padding: 10px 14px; font-weight: 600; color: #5f6368; font-size: 13px; text-align: left; vertical-align: middle;\">Case ID</td>\n        <td style=\"padding: 10px 14px; color: #202124; font-size: 13px; text-align: left; vertical-align: middle;\">${$('Prepare Approval Context').first().json.case_id || 'N/A'}</td>\n      </tr>\n      <tr>\n        <td style=\"padding: 10px 14px; font-weight: 600; color: #5f6368; font-size: 13px; text-align: left; vertical-align: middle;\">Status</td>\n        <td style=\"padding: 10px 14px; font-size: 13px; text-align: left; vertical-align: middle;\"><span style=\"background-color: #fef7e0; color: #b06000; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 600;\">Pending Review (1-Min SLA)</span></td>\n      </tr>\n    </tbody>\n  </table>\n  <p style=\"font-size: 13px; color: #5f6368; margin: 0; text-align: left;\">\n    An approval request has been dispatched to the designated approver. You will be notified automatically once decided or if it times out.\n  </p>\n</div>` }}",
+        "options": {}
+      },
+      "id": "746ec9fb-1edb-4f66-a680-24225b5745cd",
+      "name": "Send Pending Notification",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -512,
+        352
+      ],
+      "webhookId": "fff57773-5cb6-41de-bf81-27b1800f6d06",
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "sVmGKpNsTs1T3jnJ",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "cachedResultName": "case_directory",
+          "mode": "id",
+          "value": "={{ $vars.TABLE_CASE_DIRECTORY || 'PFF0bSgccDIC5E5T' }}"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "case_id",
+              "condition": "ilike",
+              "keyValue": "={{ $('Prepare Approval Context').item.json.case_id }}"
+            }
+          ]
+        },
+        "limit": 1
+      },
+      "id": "9351eff0-4c56-4569-944e-b059c0719036",
+      "name": "Get Case Approvers",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -288,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "sendTo": "={{ $vars.FIRM_ADMIN_EMAIL }}",
+        "subject": "=\"ACTION REQUIRED [Stage 1 - Firm Administrator]: Invoice \" + $('Prepare Approval Context').first().json.invoice_id + \" - Approve or Decline\"",
+        "message": "={{ `<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; width: 100%; max-width: 520px; text-align: left; color: #202124; margin: 0 auto;\">\n  <p style=\"font-size: 14px; line-height: 1.5; color: #3c4043; margin-bottom: 16px; text-align: left;\">\n    An invoice exceeding the auto-approve threshold has been submitted that requires your approval as <strong>Firm Administrator</strong>:\n  </p>\n  <table style=\"width: 100%; border-collapse: collapse; margin-bottom: 16px; background-color: #f8f9fa; border-radius: 8px; overflow: hidden; border: 1px solid #dadce0; text-align: left;\">\n    <tbody>\n      <tr style=\"border-bottom: 1px solid #e8eaed;\">\n        <td style=\"padding: 10px 14px; font-weight: 600; color: #5f6368; width: 35%; font-size: 13px; text-align: left; vertical-align: middle;\">Invoice ID</td>\n        <td style=\"padding: 10px 14px; color: #202124; font-size: 13px; font-weight: 500; text-align: left; vertical-align: middle;\">${$('Prepare Approval Context').first().json.invoice_id}</td>\n      </tr>\n      <tr style=\"border-bottom: 1px solid #e8eaed;\">\n        <td style=\"padding: 10px 14px; font-weight: 600; color: #5f6368; font-size: 13px; text-align: left; vertical-align: middle;\">Amount</td>\n        <td style=\"padding: 10px 14px; color: #1a73e8; font-size: 14px; font-weight: 700; text-align: left; vertical-align: middle;\">₹${Number($('Prepare Approval Context').first().json.amount).toLocaleString('en-IN')}</td>\n      </tr>\n      <tr style=\"border-bottom: 1px solid #e8eaed;\">\n        <td style=\"padding: 10px 14px; font-weight: 600; color: #5f6368; font-size: 13px; text-align: left; vertical-align: middle;\">Case ID</td>\n        <td style=\"padding: 10px 14px; color: #202124; font-size: 13px; text-align: left; vertical-align: middle;\">${$('Prepare Approval Context').first().json.case_id || 'N/A'}</td>\n      </tr>\n      <tr style=\"border-bottom: 1px solid #e8eaed;\">\n        <td style=\"padding: 10px 14px; font-weight: 600; color: #5f6368; font-size: 13px; text-align: left; vertical-align: middle;\">Requester</td>\n        <td style=\"padding: 10px 14px; color: #202124; font-size: 13px; text-align: left; vertical-align: middle;\">${$('Prepare Approval Context').first().json.requester_name} (${$('Prepare Approval Context').first().json.requester_role})</td>\n      </tr>\n      <tr>\n        <td style=\"padding: 10px 14px; font-weight: 600; color: #5f6368; font-size: 13px; text-align: left; vertical-align: middle;\">Stage</td>\n        <td style=\"padding: 10px 14px; color: #202124; font-size: 13px; text-align: left; vertical-align: middle;\"><span style=\"background-color: #e8f0fe; color: #1967d2; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 600;\">Stage 1 (Firm Administrator Initial Review)</span></td>\n      </tr>\n    </tbody>\n  </table>\n  <p style=\"font-size: 13px; color: #5f6368; text-align: left; margin-bottom: 6px;\">\n    Please review the invoice details and select an action below:\n  </p>\n</div>` }}",
+        "responseType": "customForm",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Decision",
+              "fieldType": "radio",
+              "defaultValue": "Approve",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Approve"
+                  },
+                  {
+                    "option": "Decline"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Rejection Reason / Notes",
+              "fieldType": "textarea",
+              "placeholder": "If declining, please enter the reason..."
+            }
+          ]
+        },
+        "options": {
+          "messageButtonLabel": "Review & Make Decision",
+          "responseFormTitle": "Stage 1: Firm Administrator Approval",
+          "responseFormDescription": "Please review the invoice details and select Approve or Decline. If declining, enter the reason below.",
+          "responseFormButtonLabel": "Submit Decision",
+          "limitWaitTime": {
+            "values": {
+              "resumeAmount": "={{ Number($vars.INVOICE_APPROVAL_TIMEOUT_MINUTES) }}",
+              "resumeUnit": "minutes"
+            }
+          },
+          "appendAttribution": false
+        }
+      },
+      "id": "6594bff8-2af7-4b70-8141-eb580daeb504",
+      "name": "Stage 1: Firm Admin Approval",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -64,
+        352
+      ],
+      "webhookId": "f5d80eb4-84cd-4a19-adbd-e66daaa08c54",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "sVmGKpNsTs1T3jnJ",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "s1-rule-approve",
+                    "leftValue": "={{ ($json.data?.Decision || $json.data?.decision || '').toString().toLowerCase() === 'approve' || $json.data?.approved === true }}",
+                    "operator": {
+                      "operation": "true",
+                      "singleValue": true,
+                      "type": "boolean"
+                    },
+                    "rightValue": true
+                  }
+                ],
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                }
+              },
+              "renameOutput": true,
+              "outputKey": "Approved"
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "s1-rule-decline",
+                    "leftValue": "={{ ['decline', 'reject'].includes(($json.data?.Decision || $json.data?.decision || '').toString().toLowerCase()) || $json.data?.approved === false }}",
+                    "operator": {
+                      "operation": "true",
+                      "singleValue": true,
+                      "type": "boolean"
+                    },
+                    "rightValue": true
+                  }
+                ],
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                }
+              },
+              "renameOutput": true,
+              "outputKey": "Declined"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Timeout"
+        }
+      },
+      "id": "555d9916-8d35-439f-a644-36e26910a08b",
+      "name": "Evaluate Stage 1 Decision",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        160,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "cachedResultName": "workflow_history",
+          "mode": "id",
+          "value": "={{ $vars.TABLE_WORKFLOW_HISTORY || 'zLUIArHa9Po3oyoW' }}"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "amount": "={{ $('Prepare Approval Context').first().json.amount }}",
+            "applied_threshold": "={{ Number($('Evaluate Invoice Total').first().json.setting_value) }}",
+            "case_id": "={{ $('Prepare Approval Context').first().json.case_id }}",
+            "decision": "Approved",
+            "decision_by": "Firm Administrator",
+            "execution_id": "={{ $execution.id }}",
+            "final_status": "In Progress",
+            "invoice_id": "={{ $('Prepare Approval Context').first().json.invoice_id }}",
+            "outcome_status": "Stage 1: Approved by Firm Administrator",
+            "requester_name": "={{ $('Prepare Approval Context').first().json.requester_name }}",
+            "requester_role": "={{ $('Prepare Approval Context').first().json.requester_role }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "846fb041-2d6f-4390-ac0e-e5219bb0bff0",
+      "name": "Log Stage 1 History",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        384,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "sendTo": "={{ ($('Get Case Approvers').first().json.case_owner_email && !$('Get Case Approvers').first().json.case_owner_email.endsWith('@example.com')) ? $('Get Case Approvers').first().json.case_owner_email : $('Prepare Approval Context').first().json.notify_email }}",
+        "subject": "=\"ACTION REQUIRED [Stage 2 - Client / Case Owner]: Invoice \" + $('Prepare Approval Context').first().json.invoice_id + \" - Approve or Decline\"",
+        "message": "={{ `<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; width: 100%; max-width: 520px; text-align: left; color: #202124; margin: 0 auto;\">\n  <p style=\"font-size: 14px; line-height: 1.5; color: #3c4043; margin-bottom: 16px; text-align: left;\">\n    Stage 1 has been approved by the <strong>Firm Administrator</strong>. Your review and sign-off as <strong>Client / Case Owner</strong> is now required to authorize billing:\n  </p>\n  <table style=\"width: 100%; border-collapse: collapse; margin-bottom: 16px; background-color: #f8f9fa; border-radius: 8px; overflow: hidden; border: 1px solid #dadce0; text-align: left;\">\n    <tbody>\n      <tr style=\"border-bottom: 1px solid #e8eaed;\">\n        <td style=\"padding: 10px 14px; font-weight: 600; color: #5f6368; width: 35%; font-size: 13px; text-align: left; vertical-align: middle;\">Invoice ID</td>\n        <td style=\"padding: 10px 14px; color: #202124; font-size: 13px; font-weight: 500; text-align: left; vertical-align: middle;\">${$('Prepare Approval Context').first().json.invoice_id}</td>\n      </tr>\n      <tr style=\"border-bottom: 1px solid #e8eaed;\">\n        <td style=\"padding: 10px 14px; font-weight: 600; color: #5f6368; font-size: 13px; text-align: left; vertical-align: middle;\">Amount</td>\n        <td style=\"padding: 10px 14px; color: #1a73e8; font-size: 14px; font-weight: 700; text-align: left; vertical-align: middle;\">₹${Number($('Prepare Approval Context').first().json.amount).toLocaleString('en-IN')}</td>\n      </tr>\n      <tr style=\"border-bottom: 1px solid #e8eaed;\">\n        <td style=\"padding: 10px 14px; font-weight: 600; color: #5f6368; font-size: 13px; text-align: left; vertical-align: middle;\">Case ID</td>\n        <td style=\"padding: 10px 14px; color: #202124; font-size: 13px; text-align: left; vertical-align: middle;\">${$('Prepare Approval Context').first().json.case_id || 'N/A'}</td>\n      </tr>\n      <tr style=\"border-bottom: 1px solid #e8eaed;\">\n        <td style=\"padding: 10px 14px; font-weight: 600; color: #5f6368; font-size: 13px; text-align: left; vertical-align: middle;\">Requester</td>\n        <td style=\"padding: 10px 14px; color: #202124; font-size: 13px; text-align: left; vertical-align: middle;\">${$('Prepare Approval Context').first().json.requester_name} (${$('Prepare Approval Context').first().json.requester_role})</td>\n      </tr>\n      <tr>\n        <td style=\"padding: 10px 14px; font-weight: 600; color: #5f6368; font-size: 13px; text-align: left; vertical-align: middle;\">Stage</td>\n        <td style=\"padding: 10px 14px; color: #202124; font-size: 13px; text-align: left; vertical-align: middle;\"><span style=\"background-color: #dcfce7; color: #15803d; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 600;\">Stage 2 (Client / Case Owner Authorization)</span></td>\n      </tr>\n    </tbody>\n  </table>\n  <p style=\"font-size: 13px; color: #5f6368; text-align: left; margin-bottom: 6px;\">\n    Please review the invoice details and select an action below:\n  </p>\n</div>` }}",
+        "responseType": "customForm",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Decision",
+              "fieldType": "radio",
+              "defaultValue": "Approve",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Approve"
+                  },
+                  {
+                    "option": "Decline"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Rejection Reason / Notes",
+              "fieldType": "textarea",
+              "placeholder": "If declining, please enter the reason..."
+            }
+          ]
+        },
+        "options": {
+          "messageButtonLabel": "Review & Make Decision",
+          "responseFormTitle": "Stage 2: Client Approval",
+          "responseFormDescription": "Please review the invoice details and select Approve or Decline. If declining, enter the reason below.",
+          "responseFormButtonLabel": "Submit Decision",
+          "limitWaitTime": {
+            "values": {
+              "resumeAmount": "={{ Number($vars.INVOICE_APPROVAL_TIMEOUT_MINUTES) }}",
+              "resumeUnit": "minutes"
+            }
+          },
+          "appendAttribution": false
+        }
+      },
+      "id": "a272ddb7-655b-40e9-a6ea-7300feef7802",
+      "name": "Stage 2: Client Approval",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        608,
+        256
+      ],
+      "webhookId": "c80edea8-09ad-4dd0-8a09-d0cd64c6fc18",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "sVmGKpNsTs1T3jnJ",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "s2-rule-approve",
+                    "leftValue": "={{ ($json.data?.Decision || $json.data?.decision || '').toString().toLowerCase() === 'approve' || $json.data?.approved === true }}",
+                    "operator": {
+                      "operation": "true",
+                      "singleValue": true,
+                      "type": "boolean"
+                    },
+                    "rightValue": true
+                  }
+                ],
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                }
+              },
+              "renameOutput": true,
+              "outputKey": "Approved"
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "s2-rule-decline",
+                    "leftValue": "={{ ['decline', 'reject'].includes(($json.data?.Decision || $json.data?.decision || '').toString().toLowerCase()) || $json.data?.approved === false }}",
+                    "operator": {
+                      "operation": "true",
+                      "singleValue": true,
+                      "type": "boolean"
+                    },
+                    "rightValue": true
+                  }
+                ],
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                }
+              },
+              "renameOutput": true,
+              "outputKey": "Declined"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Timeout"
+        }
+      },
+      "id": "d2d0e495-1237-47ef-b22e-b9fe960be0c9",
+      "name": "Evaluate Stage 2 Decision",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        832,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ [$('Prepare Approval Context').first().json.notify_email, $('Get Case Approvers').first().json.case_owner_email, $('Get Case Approvers').first().json.firm_admin_email].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(', ') }}",
+        "subject": "={{ \n  !$('Send Pending Notification').isExecuted \n    ? (\n        (Number($('Prepare Approval Context').first().json.amount) <= 0 || !$('Prepare Approval Context').first().json.amount)\n          ? 'Invoice ' + $('Prepare Approval Context').first().json.invoice_id + ' - Rejected Due to Invalid Request'\n          : 'Invoice ' + $('Prepare Approval Context').first().json.invoice_id + ' - Auto-Approved'\n      )\n    : (\n        ($('Evaluate Stage 1 Decision').isExecuted && (['decline', 'reject'].includes(($('Stage 1: Firm Admin Approval').first()?.json?.data?.Decision || '').toString().toLowerCase()) || $('Stage 1: Firm Admin Approval').first()?.json?.data?.approved === false))\n          ? 'Invoice ' + $('Prepare Approval Context').first().json.invoice_id + ' - Declined by Firm Administrator'\n          : (\n              ($('Evaluate Stage 2 Decision').isExecuted && (['decline', 'reject'].includes(($('Stage 2: Client Approval').first()?.json?.data?.Decision || '').toString().toLowerCase()) || $('Stage 2: Client Approval').first()?.json?.data?.approved === false))\n                ? 'Invoice ' + $('Prepare Approval Context').first().json.invoice_id + ' - Declined by Client'\n                : (\n                    ($('Evaluate Stage 2 Decision').isExecuted && (($('Stage 2: Client Approval').first()?.json?.data?.Decision || '').toString().toLowerCase() === 'approve' || $('Stage 2: Client Approval').first()?.json?.data?.approved === true))\n                      ? 'Invoice ' + $('Prepare Approval Context').first().json.invoice_id + ' - Fully Approved'\n                      : 'URGENT SLA ALERT: Invoice ' + $('Prepare Approval Context').first().json.invoice_id + ' - Approval Window Expired'\n                  )\n            )\n      )\n}}",
+        "message": "={{ \n  (() => {\n    const ctx = $('Prepare Approval Context').first().json || {};\n    const approvers = $('Get Case Approvers').isExecuted ? ($('Get Case Approvers').first().json || {}) : {};\n    const invoiceId = ctx.invoice_id || 'INV-001';\n    const caseId = ctx.case_id || 'N/A';\n    const amountFormatted = Number(ctx.amount || 0).toLocaleString('en-IN');\n    const requesterName = ctx.requester_name || approvers.client_name || 'Client';\n    const timestampStr = $now.toFormat('dd LLL yyyy, hh:mm a');\n    const isPending = $('Send Pending Notification').isExecuted;\n    \n    if (!isPending) {\n      if (Number(ctx.amount) <= 0 || !ctx.amount) {\n        return `<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #1e293b; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #ffffff;\">\n          <div style=\"background: #991b1b; color: #ffffff; padding: 20px 24px;\">\n            <div style=\"font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.85; margin-bottom: 4px;\">Legal Practice Management &bull; Billing Service</div>\n            <h2 style=\"margin: 0; font-size: 20px; font-weight: 700;\">⛔ Invoice Request Invalid</h2>\n            <p style=\"margin: 4px 0 0 0; opacity: 0.9; font-size: 13px;\">Reference: ${invoiceId} &bull; Case #${caseId}</p>\n          </div>\n          <div style=\"padding: 24px;\">\n            <p style=\"font-size: 14px; margin-top: 0;\">Hello <strong>${requesterName}</strong>,</p>\n            <p style=\"font-size: 14px; color: #475569;\">Your invoice generation request could not be processed because the billed amount is invalid or zero.</p>\n            <p style=\"font-size: 13px; color: #64748b; margin-bottom: 0;\">Please verify matter billing details and submit again.</p>\n          </div>\n        </div>`;\n      }\n      \n      const thresholdVal = Number($('Evaluate Invoice Total').first().json?.setting_value || 0).toLocaleString('en-IN');\n      return `<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #1e293b; max-width: 600px; margin: 0 auto; border: 1px solid #cbd5e1; border-radius: 10px; overflow: hidden; background: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.06);\">\n        <div style=\"background: linear-gradient(135deg, #065f46 0%, #047857 100%); color: #ffffff; padding: 24px 28px;\">\n          <div style=\"font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; opacity: 0.85; margin-bottom: 4px; font-weight: 600;\">Legal Practice Management &bull; Financial Division</div>\n          <h2 style=\"margin: 0; font-size: 22px; font-weight: 700;\">⚡ Invoice Auto-Approved</h2>\n          <p style=\"margin: 5px 0 0 0; opacity: 0.95; font-size: 14px;\">Invoice Ref: <strong style=\"color: #a7f3d0;\">${invoiceId}</strong> &bull; Case Reference: <strong>#${caseId}</strong></p>\n        </div>\n        <div style=\"padding: 26px 28px;\">\n          <p style=\"font-size: 15px; margin-top: 0; color: #0f172a;\">Dear <strong>${requesterName}</strong>,</p>\n          <p style=\"font-size: 14px; color: #334155; margin-bottom: 20px;\">Your billing invoice has cleared firm verification rules and was <strong>Auto-Approved</strong> within the standard practice threshold (Limit: ₹${thresholdVal}).</p>\n          \n          <div style=\"background-color: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 18px 20px; margin-bottom: 20px;\">\n            <table border=\"0\" cellpadding=\"6\" style=\"width: 100%; border-collapse: collapse; font-size: 14px;\">\n              <tr style=\"border-bottom: 1px solid #edf2f7;\"><td style=\"width: 38%; color: #64748b; font-weight: 500;\">Invoice ID:</td><td><code style=\"color: #065f46; font-size: 15px; font-weight: bold; background: #e6f4ea; padding: 2px 8px; border-radius: 4px;\">${invoiceId}</code></td></tr>\n              <tr style=\"border-bottom: 1px solid #edf2f7;\"><td style=\"color: #64748b; font-weight: 500;\">Case ID:</td><td><strong style=\"color: #0f172a;\">Case #${caseId}</strong></td></tr>\n              <tr style=\"border-bottom: 1px solid #edf2f7;\"><td style=\"color: #64748b; font-weight: 500;\">Billed Amount:</td><td><strong style=\"color: #047857; font-size: 16px;\">₹${amountFormatted}</strong></td></tr>\n              <tr style=\"border-bottom: 1px solid #edf2f7;\"><td style=\"color: #64748b; font-weight: 500;\">Status:</td><td><span style=\"background: #dcfce7; color: #15803d; padding: 3px 10px; border-radius: 4px; font-weight: 700; font-size: 12px;\">AUTO-APPROVED</span></td></tr>\n              <tr><td style=\"color: #64748b; font-weight: 500;\">Decision Timestamp:</td><td><span style=\"color: #475569;\">${timestampStr}</span></td></tr>\n            </table>\n          </div>\n          <hr style=\"border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;\"/>\n          <p style=\"font-size: 12px; color: #94a3b8; margin: 0; text-align: center;\">Legal Practice Management System &bull; Privileged & Confidential Financial Record</p>\n        </div>\n      </div>`;\n    }\n    \n    const s1Declined = $('Evaluate Stage 1 Decision').isExecuted && (['decline', 'reject'].includes(($('Stage 1: Firm Admin Approval').first()?.json?.data?.Decision || '').toString().toLowerCase()) || $('Stage 1: Firm Admin Approval').first()?.json?.data?.approved === false);\n    const s2Declined = $('Evaluate Stage 2 Decision').isExecuted && (['decline', 'reject'].includes(($('Stage 2: Client Approval').first()?.json?.data?.Decision || '').toString().toLowerCase()) || $('Stage 2: Client Approval').first()?.json?.data?.approved === false);\n    const s2Approved = $('Evaluate Stage 2 Decision').isExecuted && (($('Stage 2: Client Approval').first()?.json?.data?.Decision || '').toString().toLowerCase() === 'approve' || $('Stage 2: Client Approval').first()?.json?.data?.approved === true);\n    \n    if (s1Declined || s2Declined) {\n      const declinerRole = s1Declined ? 'Firm Administrator' : 'Client / Case Owner';\n      const reasonNote = s1Declined \n        ? ($('Stage 1: Firm Admin Approval').first()?.json?.data?.['Rejection Reason / Notes'] || 'Declined during administrative review.')\n        : ($('Stage 2: Client Approval').first()?.json?.data?.['Rejection Reason / Notes'] || 'Declined by client.');\n        \n      return `<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #1e293b; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; background: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.06);\">\n        <div style=\"background: linear-gradient(135deg, #991b1b 0%, #b91c1c 100%); color: #ffffff; padding: 24px 28px;\">\n          <div style=\"font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; opacity: 0.85; margin-bottom: 4px; font-weight: 600;\">Legal Practice Management &bull; Financial Division</div>\n          <h2 style=\"margin: 0; font-size: 22px; font-weight: 700;\">⛔ Invoice Request Declined</h2>\n          <p style=\"margin: 5px 0 0 0; opacity: 0.95; font-size: 14px;\">Invoice Ref: <strong style=\"color: #fecaca;\">${invoiceId}</strong> &bull; Case Reference: <strong>#${caseId}</strong></p>\n        </div>\n        <div style=\"padding: 26px 28px;\">\n          <p style=\"font-size: 15px; margin-top: 0; color: #0f172a;\">Dear <strong>${requesterName}</strong>,</p>\n          <p style=\"font-size: 14px; color: #334155; margin-bottom: 20px;\">Your billing invoice for <strong>₹${amountFormatted}</strong> has been declined during review by <strong>${declinerRole}</strong>.</p>\n          \n          <div style=\"background-color: #fef2f2; border: 1.5px solid #fecaca; border-left: 5px solid #dc2626; border-radius: 8px; padding: 18px 20px; margin-bottom: 22px;\">\n            <table border=\"0\" cellpadding=\"6\" style=\"width: 100%; border-collapse: collapse; font-size: 14px;\">\n              <tr style=\"border-bottom: 1px solid #fee2e2;\"><td style=\"width: 38%; color: #64748b; font-weight: 500;\">Invoice Reference:</td><td><strong style=\"color: #991b1b;\">${invoiceId}</strong></td></tr>\n              <tr style=\"border-bottom: 1px solid #fee2e2;\"><td style=\"color: #64748b; font-weight: 500;\">Decision:</td><td><span style=\"background: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 12px;\">DECLINED</span></td></tr>\n              <tr style=\"border-bottom: 1px solid #fee2e2;\"><td style=\"color: #64748b; font-weight: 500;\">Declined By:</td><td><strong style=\"color: #b91c1c;\">${declinerRole}</strong></td></tr>\n              <tr style=\"border-bottom: 1px solid #fee2e2;\"><td style=\"color: #64748b; font-weight: 500; vertical-align: top;\">Reason / Notes:</td><td><span style=\"color: #1e293b;\">${reasonNote}</span></td></tr>\n              <tr><td style=\"color: #64748b; font-weight: 500;\">Timestamp:</td><td><span style=\"color: #475569;\">${timestampStr}</span></td></tr>\n            </table>\n          </div>\n          <p style=\"font-size: 13px; color: #64748b;\">If revisions or adjustments are required, please update matter billing parameters or resubmit through the practice portal.</p>\n          <hr style=\"border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0 16px 0;\"/>\n          <p style=\"font-size: 12px; color: #94a3b8; margin: 0; text-align: center;\">Legal Practice Management System &bull; Privileged & Confidential Financial Record</p>\n        </div>\n      </div>`;\n    }\n    \n    if (s2Approved) {\n      return `<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #1e293b; max-width: 600px; margin: 0 auto; border: 1px solid #cbd5e1; border-radius: 10px; overflow: hidden; background: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.06);\">\n        <div style=\"background: linear-gradient(135deg, #065f46 0%, #047857 100%); color: #ffffff; padding: 26px 28px;\">\n          <div style=\"font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; opacity: 0.85; margin-bottom: 4px; font-weight: 600;\">Legal Practice Management &bull; Financial Division</div>\n          <h1 style=\"margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.3px;\">⚖️ Invoice Fully Approved</h1>\n          <p style=\"margin: 6px 0 0 0; opacity: 0.95; font-size: 14px;\">Official Invoice: <strong style=\"color: #a7f3d0;\">${invoiceId}</strong> &bull; Case Reference: <strong>#${caseId}</strong></p>\n        </div>\n        <div style=\"padding: 28px 28px 24px 28px;\">\n          <p style=\"font-size: 15px; margin-top: 0; color: #0f172a;\">Dear <strong>${requesterName}</strong>,</p>\n          <p style=\"font-size: 14px; line-height: 1.6; color: #334155; margin-bottom: 20px;\">\n            We are pleased to inform you that your billing invoice has successfully cleared all required stages of review and is now <strong>Fully Approved & Certified</strong> under practice compliance policies.\n          </p>\n          \n          <div style=\"background-color: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 18px 20px; margin-bottom: 22px;\">\n            <table border=\"0\" cellpadding=\"7\" style=\"width: 100%; border-collapse: collapse; font-size: 14px;\">\n              <tr style=\"border-bottom: 1px solid #edf2f7;\">\n                <td style=\"width: 38%; color: #64748b; font-weight: 500;\">Invoice Reference:</td>\n                <td><code style=\"font-size: 15px; font-weight: 700; color: #065f46; background: #e6f4ea; padding: 2px 8px; border-radius: 4px;\">${invoiceId}</code></td>\n              </tr>\n              <tr style=\"border-bottom: 1px solid #edf2f7;\">\n                <td style=\"color: #64748b; font-weight: 500;\">Case Matter ID:</td>\n                <td><strong style=\"color: #0f172a;\">Case #${caseId}</strong></td>\n              </tr>\n              <tr style=\"border-bottom: 1px solid #edf2f7;\">\n                <td style=\"color: #64748b; font-weight: 500;\">Total Invoiced Amount:</td>\n                <td><strong style=\"color: #047857; font-size: 17px;\">₹${amountFormatted}</strong></td>\n              </tr>\n              <tr style=\"border-bottom: 1px solid #edf2f7;\">\n                <td style=\"color: #64748b; font-weight: 500;\">Multi-Tier Status:</td>\n                <td><span style=\"background: #dcfce7; color: #15803d; padding: 4px 10px; border-radius: 4px; font-weight: 700; font-size: 12px; letter-spacing: 0.3px; text-transform: uppercase;\">✅ Fully Approved</span></td>\n              </tr>\n              <tr style=\"border-bottom: 1px solid #edf2f7;\">\n                <td style=\"color: #64748b; font-weight: 500;\">Tier 1 Authorization:</td>\n                <td><span style=\"color: #0f172a; font-weight: 600;\">✓ Firm Administrator Sign-off Completed</span></td>\n              </tr>\n              <tr style=\"border-bottom: 1px solid #edf2f7;\">\n                <td style=\"color: #64748b; font-weight: 500;\">Tier 2 Authorization:</td>\n                <td><span style=\"color: #0f172a; font-weight: 600;\">✓ Client / Case Owner Sign-off Completed</span></td>\n              </tr>\n              <tr>\n                <td style=\"color: #64748b; font-weight: 500;\">Approval Timestamp:</td>\n                <td><span style=\"color: #475569;\">${timestampStr}</span></td>\n              </tr>\n            </table>\n          </div>\n\n          <div style=\"background-color: #f0fdf4; border-left: 4px solid #16a34a; border-radius: 4px; padding: 14px 16px; margin-bottom: 22px;\">\n            <p style=\"margin: 0; font-size: 13px; color: #166534; line-height: 1.5;\">\n              <strong>Ledger Notice:</strong> This invoice transaction has been permanently recorded to the matter audit ledger. Certified digital PDF invoice documents and financial statements are available anytime on the legal services portal.\n            </p>\n          </div>\n\n          <div style=\"text-align: center; margin: 24px 0 16px 0;\">\n            <a href=\"https://sahil8249.app.n8n.cloud/form/045da56e-cbe9-48d3-83bb-39db73bb1a6c\" target=\"_blank\" style=\"display: inline-block; background-color: #047857; color: #ffffff; padding: 13px 28px; text-decoration: none; border-radius: 6px; font-weight: 700; font-size: 14px; box-shadow: 0 2px 4px rgba(4,120,87,0.25);\">📱 Access Client Portal & View Receipts</a>\n          </div>\n\n          <hr style=\"border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0 16px 0;\"/>\n          <p style=\"font-size: 12px; color: #94a3b8; margin: 0; text-align: center;\">Legal Practice Management System &bull; Privileged & Confidential Financial Record</p>\n        </div>\n      </div>`;\n    }\n    \n    return `<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #1e293b; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; background: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.06);\">\n      <div style=\"background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%); color: #ffffff; padding: 24px 28px;\">\n        <div style=\"font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; opacity: 0.85; margin-bottom: 4px; font-weight: 600;\">Legal Practice Management &bull; Financial Division</div>\n        <h2 style=\"margin: 0; font-size: 22px; font-weight: 700;\">⚠️ Approval Window Expired</h2>\n        <p style=\"margin: 5px 0 0 0; opacity: 0.95; font-size: 14px;\">Invoice Ref: <strong style=\"color: #ffedd5;\">${invoiceId}</strong> &bull; Case Reference: <strong>#${caseId}</strong></p>\n      </div>\n      <div style=\"padding: 26px 28px;\">\n        <p style=\"font-size: 15px; margin-top: 0; color: #0f172a;\">Dear <strong>${requesterName}</strong>,</p>\n        <p style=\"font-size: 14px; color: #334155; margin-bottom: 18px;\">The designated approval window for Invoice <strong>${invoiceId}</strong> (₹${amountFormatted}) has timed out without approver confirmation.</p>\n        <div style=\"background-color: #fff7ed; border-left: 4px solid #ea580c; padding: 14px 16px; border-radius: 4px;\">\n          <p style=\"margin: 0; font-size: 13px; color: #9a3412;\">The matter billing transaction has been escalated for administrative resolution.</p>\n        </div>\n        <hr style=\"border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0 16px 0;\"/>\n        <p style=\"font-size: 12px; color: #94a3b8; margin: 0; text-align: center;\">Legal Practice Management System &bull; Privileged & Confidential Financial Record</p>\n      </div>\n    </div>`;\n  })()\n}}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "f9dcebcd-4964-4bd0-9f3d-97860342dcbd",
+      "name": "Send Final Notification",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1120,
+        352
+      ],
+      "webhookId": "db4557e6-8db5-443d-848e-90492417db0f",
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "sVmGKpNsTs1T3jnJ",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "cachedResultName": "workflow_history",
+          "mode": "id",
+          "value": "={{ $vars.TABLE_WORKFLOW_HISTORY || 'zLUIArHa9Po3oyoW' }}"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "schema": [
+            {
+              "displayName": "invoice_id",
+              "id": "invoice_id",
+              "type": "string"
+            },
+            {
+              "displayName": "case_id",
+              "id": "case_id",
+              "type": "string"
+            },
+            {
+              "displayName": "requester_name",
+              "id": "requester_name",
+              "type": "string"
+            },
+            {
+              "displayName": "requester_role",
+              "id": "requester_role",
+              "type": "string"
+            },
+            {
+              "displayName": "amount",
+              "id": "amount",
+              "type": "number"
+            },
+            {
+              "displayName": "applied_threshold",
+              "id": "applied_threshold",
+              "type": "number"
+            },
+            {
+              "displayName": "decision",
+              "id": "decision",
+              "type": "string"
+            },
+            {
+              "displayName": "decision_by",
+              "id": "decision_by",
+              "type": "string"
+            },
+            {
+              "displayName": "outcome_status",
+              "id": "outcome_status",
+              "type": "string"
+            },
+            {
+              "displayName": "final_status",
+              "id": "final_status",
+              "type": "string"
+            },
+            {
+              "displayName": "execution_id",
+              "id": "execution_id",
+              "type": "string"
+            }
+          ],
+          "value": {
+            "amount": "={{ $('Prepare Approval Context').first().json.amount }}",
+            "applied_threshold": "={{ Number($('Evaluate Invoice Total').first().json.setting_value) || 0 }}",
+            "case_id": "={{ $('Prepare Approval Context').first().json.case_id }}",
+            "decision": "={{ \n  !$('Send Pending Notification').isExecuted \n    ? (\n        (Number($('Prepare Approval Context').first().json.amount) <= 0 || !$('Prepare Approval Context').first().json.amount)\n          ? 'Rejected'\n          : 'Auto-Approved'\n      )\n    : (\n        ($('Evaluate Stage 1 Decision').isExecuted && (['decline', 'reject'].includes(($('Stage 1: Firm Admin Approval').first()?.json?.data?.Decision || $('Stage 1: Firm Admin Approval').first()?.json?.data?.decision || '').toString().toLowerCase()) || $('Stage 1: Firm Admin Approval').first()?.json?.data?.approved === false))\n          ? 'Rejected'\n          : (\n              ($('Evaluate Stage 2 Decision').isExecuted && (['decline', 'reject'].includes(($('Stage 2: Client Approval').first()?.json?.data?.Decision || $('Stage 2: Client Approval').first()?.json?.data?.decision || '').toString().toLowerCase()) || $('Stage 2: Client Approval').first()?.json?.data?.approved === false))\n                ? 'Rejected'\n                : (\n                    ($('Evaluate Stage 2 Decision').isExecuted && (($('Stage 2: Client Approval').first()?.json?.data?.Decision || $('Stage 2: Client Approval').first()?.json?.data?.decision || '').toString().toLowerCase() === 'approve' || $('Stage 2: Client Approval').first()?.json?.data?.approved === true))\n                      ? 'Approved'\n                      : 'Timed Out'\n                  )\n            )\n      )\n}}",
+            "decision_by": "={{ \n  !$('Send Pending Notification').isExecuted \n    ? (\n        (Number($('Prepare Approval Context').first().json.amount) <= 0 || !$('Prepare Approval Context').first().json.amount)\n          ? 'System (Validation)'\n          : 'System (Rule Engine)'\n      )\n    : (\n        ($('Evaluate Stage 1 Decision').isExecuted && (['decline', 'reject'].includes(($('Stage 1: Firm Admin Approval').first()?.json?.data?.Decision || $('Stage 1: Firm Admin Approval').first()?.json?.data?.decision || '').toString().toLowerCase()) || $('Stage 1: Firm Admin Approval').first()?.json?.data?.approved === false))\n          ? 'Firm Administrator'\n          : (\n              $('Evaluate Stage 2 Decision').isExecuted\n                ? 'Client (Case Owner)'\n                : 'System (Timeout Monitor)'\n            )\n      )\n}}",
+            "execution_id": "={{ $execution.id }}",
+            "final_status": "={{ \n  !$('Send Pending Notification').isExecuted \n    ? (\n        (Number($('Prepare Approval Context').first().json.amount) <= 0 || !$('Prepare Approval Context').first().json.amount)\n          ? 'Rejected'\n          : 'Approved'\n      )\n    : (\n        ($('Evaluate Stage 1 Decision').isExecuted && (['decline', 'reject'].includes(($('Stage 1: Firm Admin Approval').first()?.json?.data?.Decision || $('Stage 1: Firm Admin Approval').first()?.json?.data?.decision || '').toString().toLowerCase()) || $('Stage 1: Firm Admin Approval').first()?.json?.data?.approved === false))\n          ? 'Rejected'\n          : (\n              ($('Evaluate Stage 2 Decision').isExecuted && (['decline', 'reject'].includes(($('Stage 2: Client Approval').first()?.json?.data?.Decision || $('Stage 2: Client Approval').first()?.json?.data?.decision || '').toString().toLowerCase()) || $('Stage 2: Client Approval').first()?.json?.data?.approved === false))\n                ? 'Rejected'\n                : (\n                    ($('Evaluate Stage 2 Decision').isExecuted && (($('Stage 2: Client Approval').first()?.json?.data?.Decision || $('Stage 2: Client Approval').first()?.json?.data?.decision || '').toString().toLowerCase() === 'approve' || $('Stage 2: Client Approval').first()?.json?.data?.approved === true))\n                      ? 'Approved'\n                      : 'Timed Out'\n                  )\n            )\n      )\n}}",
+            "invoice_id": "={{ $('Prepare Approval Context').first().json.invoice_id }}",
+            "outcome_status": "={{ \n  !$('Send Pending Notification').isExecuted \n    ? (\n        (Number($('Prepare Approval Context').first().json.amount) <= 0 || !$('Prepare Approval Context').first().json.amount)\n          ? 'Rejected due to invalid request.'\n          : 'Auto-Approved'\n      )\n    : (\n        ($('Evaluate Stage 1 Decision').isExecuted && (['decline', 'reject'].includes(($('Stage 1: Firm Admin Approval').first()?.json?.data?.Decision || $('Stage 1: Firm Admin Approval').first()?.json?.data?.decision || '').toString().toLowerCase()) || $('Stage 1: Firm Admin Approval').first()?.json?.data?.approved === false))\n          ? ('Stage 1: Rejected by Firm Administrator - ' + ($('Stage 1: Firm Admin Approval').first()?.json?.data?.['Rejection Reason / Notes'] || 'Declined by Firm Admin'))\n          : (\n              ($('Evaluate Stage 2 Decision').isExecuted && (['decline', 'reject'].includes(($('Stage 2: Client Approval').first()?.json?.data?.Decision || $('Stage 2: Client Approval').first()?.json?.data?.decision || '').toString().toLowerCase()) || $('Stage 2: Client Approval').first()?.json?.data?.approved === false))\n                ? ('Stage 2: Rejected by Client - ' + ($('Stage 2: Client Approval').first()?.json?.data?.['Rejection Reason / Notes'] || 'Declined by Client'))\n                : (\n                    ($('Evaluate Stage 2 Decision').isExecuted && (($('Stage 2: Client Approval').first()?.json?.data?.Decision || $('Stage 2: Client Approval').first()?.json?.data?.decision || '').toString().toLowerCase() === 'approve' || $('Stage 2: Client Approval').first()?.json?.data?.approved === true))\n                      ? 'Stage 2: Approved by Client (Fully Approved)'\n                      : 'Approval Window Expired (Timed Out)'\n                  )\n            )\n      )\n}}",
+            "requester_name": "={{ $('Prepare Approval Context').first().json.requester_name }}",
+            "requester_role": "={{ $('Prepare Approval Context').first().json.requester_role }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "4e2f8766-cb00-4859-9c0b-77f21626b93d",
+      "name": "Log Final History",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1344,
+        352
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "out-1",
+              "name": "final_status",
+              "type": "string",
+              "value": "={{ $json.final_status }}"
+            },
+            {
+              "id": "out-2",
+              "name": "outcome_status",
+              "type": "string",
+              "value": "={{ $json.outcome_status }}"
+            },
+            {
+              "id": "out-3",
+              "name": "decision_by",
+              "type": "string",
+              "value": "={{ $json.decision_by }}"
+            },
+            {
+              "id": "out-4",
+              "name": "invoice_id",
+              "type": "string",
+              "value": "={{ $('Prepare Approval Context').item.json.invoice_id }}"
+            },
+            {
+              "id": "out-5",
+              "name": "amount",
+              "type": "number",
+              "value": "={{ $('Prepare Approval Context').item.json.amount }}"
+            },
+            {
+              "id": "out-6",
+              "name": "case_id",
+              "type": "string",
+              "value": "={{ $('Prepare Approval Context').item.json.case_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f0dc3b2a-f23f-4cc4-902b-79f6943fd9da",
+      "name": "Return Approval Summary",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1568,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "sdt-val",
+              "name": "setting_value",
+              "type": "string",
+              "value": "={{ $vars.DEFAULT_AUTO_APPROVE_THRESHOLD }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0e286ad8-aace-485d-b3a0-6f2ce967c543",
+      "name": "Set Default Threshold",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -960,
+        288
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Prepare Approval Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Approval Context": {
+      "main": [
+        [
+          {
+            "node": "Get Case-Specific Threshold",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Case-Specific Threshold": {
+      "main": [
+        [
+          {
+            "node": "Has Case-Specific Override?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Case-Specific Override?": {
+      "main": [
+        [
+          {
+            "node": "Evaluate Invoice Total",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set Default Threshold",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluate Invoice Total": {
+      "main": [
+        [
+          {
+            "node": "Send Final Notification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Pending Notification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Final Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Pending Notification": {
+      "main": [
+        [
+          {
+            "node": "Get Case Approvers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Case Approvers": {
+      "main": [
+        [
+          {
+            "node": "Stage 1: Firm Admin Approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluate Stage 1 Decision": {
+      "main": [
+        [
+          {
+            "node": "Log Stage 1 History",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Final Notification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Final Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Stage 1 History": {
+      "main": [
+        [
+          {
+            "node": "Stage 2: Client Approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluate Stage 2 Decision": {
+      "main": [
+        [
+          {
+            "node": "Send Final Notification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Final Notification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Final Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Final Notification": {
+      "main": [
+        [
+          {
+            "node": "Log Final History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Final History": {
+      "main": [
+        [
+          {
+            "node": "Return Approval Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stage 1: Firm Admin Approval": {
+      "main": [
+        [
+          {
+            "node": "Evaluate Stage 1 Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stage 2: Client Approval": {
+      "main": [
+        [
+          {
+            "node": "Evaluate Stage 2 Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Default Threshold": {
+      "main": [
+        [
+          {
+            "node": "Evaluate Invoice Total",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true,
+    "errorWorkflow": "Dvao8HFN2GnGuaQZ"
+  },
+  "versionId": "1773a3a1-7802-49ed-81d2-062ab8fe1e51",
+  "meta": {
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp",
+    "instanceId": "1b7f2b8bd7379ce28884aabf2215f3c90ff32a7e4c4f1088ddd7ce0532074b6f"
+  },
+  "nodeGroups": [
+    {
+      "id": "888e179f-dc8b-4a4d-bb3c-bacf5a730501",
+      "name": "Intake & Threshold Evaluation",
+      "nodeIds": [
+        "7b001800-1106-45d4-8ea5-9a0b9827c6aa",
+        "0da7acfe-8da9-4851-9f10-cedec5ac3f1f",
+        "7f964d5d-7ee2-45ed-8601-f7d3a1414bcb",
+        "0e286ad8-aace-485d-b3a0-6f2ce967c543",
+        "ef6f53a0-b785-4b94-99f0-7a0517076763"
+      ],
+      "description": "Validates invoice parameters and compares amount against case-specific or default auto-approval limits."
+    },
+    {
+      "id": "c93e2db4-63e0-4e47-8b07-0cf61e8d996c",
+      "name": "Stage 1: Firm Admin Review",
+      "nodeIds": [
+        "746ec9fb-1edb-4f66-a680-24225b5745cd",
+        "9351eff0-4c56-4569-944e-b059c0719036",
+        "6594bff8-2af7-4b70-8141-eb580daeb504",
+        "555d9916-8d35-439f-a644-36e26910a08b"
+      ],
+      "description": "Notifies requester, fetches approver directory, and captures Stage 1 decision from Firm Administrator."
+    },
+    {
+      "id": "a6a22b11-5ba2-4aa4-b276-135e1534fb1a",
+      "name": "Stage 2: Client Review",
+      "nodeIds": [
+        "846fb041-2d6f-4390-ac0e-e5219bb0bff0",
+        "a272ddb7-655b-40e9-a6ea-7300feef7802",
+        "d2d0e495-1237-47ef-b22e-b9fe960be0c9"
+      ],
+      "description": "Records Stage 1 history and routes Stage 2 client sign-off to Case Owner."
+    },
+    {
+      "id": "8a0df9d1-eccc-49eb-90f7-b2c799a27aae",
+      "name": "Final Notification & Audit Logging",
+      "nodeIds": [
+        "f9dcebcd-4964-4bd0-9f3d-97860342dcbd",
+        "4e2f8766-cb00-4859-9c0b-77f21626b93d",
+        "f0dc3b2a-f23f-4cc4-902b-79f6943fd9da"
+      ],
+      "description": "Dispatches final notification, writes final history record, and returns execution summary."
+    }
+  ],
+  "id": "u7lLelZaDSCZIOqU",
+  "tags": []
+}

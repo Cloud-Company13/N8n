@@ -1,0 +1,927 @@
+{
+  "name": "Universal Document & PDF Dispatcher (Reusable)",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "document_type"
+            },
+            {
+              "name": "case_id"
+            },
+            {
+              "name": "client_name"
+            },
+            {
+              "name": "client_email"
+            },
+            {
+              "name": "client_address"
+            },
+            {
+              "name": "client_location"
+            },
+            {
+              "name": "client_pincode"
+            },
+            {
+              "name": "matter_title"
+            },
+            {
+              "name": "category"
+            },
+            {
+              "name": "stage"
+            },
+            {
+              "name": "adverse_party"
+            },
+            {
+              "name": "advocate_name"
+            },
+            {
+              "name": "advocate_id"
+            },
+            {
+              "name": "advocate_email"
+            },
+            {
+              "name": "conflict_status"
+            },
+            {
+              "name": "invoice_id"
+            },
+            {
+              "name": "invoice_amount",
+              "type": "number"
+            },
+            {
+              "name": "invoice_date"
+            },
+            {
+              "name": "decision_by"
+            },
+            {
+              "name": "outcome_status"
+            },
+            {
+              "name": "final_status"
+            },
+            {
+              "name": "requester_name"
+            },
+            {
+              "name": "requester_role"
+            },
+            {
+              "name": "send_email",
+              "type": "boolean"
+            }
+          ]
+        }
+      },
+      "id": "6c9ee50f-50f2-4c44-8948-9d20f58c71db",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        -128
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ ($json.document_type || '').toLowerCase().trim() }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "rightValue": "invoice"
+            }
+          ],
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          }
+        },
+        "options": {}
+      },
+      "id": "be24befa-ed96-4b17-afb5-40c97284276b",
+      "name": "Is Invoice?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        512,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "copy",
+        "fileId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $vars.DRIVE_INVOICE_TEMPLATE_ID }}"
+        },
+        "name": "={{ 'Invoice-' + ($('Prepare Inputs').first().json.invoice_id || 'INV') + '-' + ($('Prepare Inputs').first().json.case_id || 'MATTER') }}",
+        "sameFolder": false,
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "cachedResultName": "/ (Root folder)",
+          "mode": "list",
+          "value": "root"
+        },
+        "options": {}
+      },
+      "id": "9ccff304-7b03-4a4b-8b19-ba4ee23f5097",
+      "name": "Copy Invoice Template",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        736,
+        0
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "3wppgCNBz42xvM8u",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentURL": "={{ $json.id }}",
+        "actionsUi": {
+          "actionFields": [
+            {
+              "action": "replaceAll",
+              "text": "{{INVOICE_NUMBER}}",
+              "replaceText": "={{ $('Prepare Inputs').first().json.invoice_id || '' }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{INVOICE_ID}}",
+              "replaceText": "={{ $('Prepare Inputs').first().json.invoice_id || '' }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{CASE_ID}}",
+              "replaceText": "={{ $('Prepare Inputs').first().json.case_id || '' }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{STATEMENT_DATE}}",
+              "replaceText": "={{ DateTime.now().setZone('Asia/Kolkata').toFormat('dd LLL yyyy, HH:mm') }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{DATE}}",
+              "replaceText": "={{ DateTime.now().setZone('Asia/Kolkata').toFormat('dd LLL yyyy, HH:mm') }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{REQUESTER_NAME}}",
+              "replaceText": "={{ $('Prepare Inputs').first().json.requester_name || '' }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{REQUESTER_ROLE}}",
+              "replaceText": "={{ $('Prepare Inputs').first().json.requester_role || '' }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{RECIPIENT_EMAIL}}",
+              "replaceText": "={{ $('Prepare Inputs').first().json.client_email || '' }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{EMAIL}}",
+              "replaceText": "={{ $('Prepare Inputs').first().json.client_email || '' }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{DECISION_STATUS}}",
+              "replaceText": "={{ $('Prepare Inputs').first().json.final_status || 'Approved' }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{STATUS}}",
+              "replaceText": "={{ $('Prepare Inputs').first().json.final_status || 'Approved' }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{AUDITED_BY}}",
+              "replaceText": "={{ $('Prepare Inputs').first().json.decision_by || 'Auto-Audited' }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{AUDIT_REMARKS}}",
+              "replaceText": "={{ $('Prepare Inputs').first().json.outcome_status || 'Approved' }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{TOTAL_AMOUNT}}",
+              "replaceText": "={{ Number($('Prepare Inputs').first().json.invoice_amount || 0).toLocaleString('en-IN') }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{AMOUNT}}",
+              "replaceText": "={{ Number($('Prepare Inputs').first().json.invoice_amount || 0).toLocaleString('en-IN') }}"
+            }
+          ]
+        }
+      },
+      "id": "b7472584-ba14-4449-8fd2-c9158ab248fd",
+      "name": "Populate Invoice Placeholders",
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [
+        960,
+        0
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "YfO4OJEjNrs9uFzH",
+          "name": "Google Docs account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "share",
+        "fileId": "={{ $json.documentId || $json.id }}",
+        "permissionsUi": {
+          "permissionsValues": {
+            "role": "reader",
+            "type": "anyone"
+          }
+        },
+        "options": {}
+      },
+      "id": "f2b5b945-7324-49c7-98c8-fa439d36f347",
+      "name": "Share Document",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1184,
+        96
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "3wppgCNBz42xvM8u",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": "={{ $('Populate Engagement Placeholders').isExecuted ? $('Populate Engagement Placeholders').first().json.documentId : $('Populate Invoice Placeholders').first().json.documentId }}",
+        "options": {
+          "binaryPropertyName": "data",
+          "googleFileConversion": {
+            "conversion": {
+              "docsToFormat": "application/pdf"
+            }
+          },
+          "fileName": "={{ ($('Prepare Inputs').first().json.document_type || '').toLowerCase().trim() === 'invoice' ? ('Invoice-' + ($('Prepare Inputs').first().json.invoice_id || 'INV') + '.pdf') : ('Engagement-Agreement-' + ($('Prepare Inputs').first().json.case_id || 'MATTER') + '.pdf') }}"
+        }
+      },
+      "id": "53beb191-0496-4a36-8636-f60af4e2a3c7",
+      "name": "Export as PDF",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1040,
+        0
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "3wppgCNBz42xvM8u",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Prepare Inputs').first().json.client_email }}",
+        "subject": "={{ ($('Prepare Inputs').first().json.document_type || '').toLowerCase().trim() === 'invoice' ? ('Official Invoice #' + ($('Prepare Inputs').first().json.invoice_id || '') + ' - Case ' + ($('Prepare Inputs').first().json.case_id || '') + ' [PDF Attached]') : ('Official Engagement Agreement - Case #' + ($('Prepare Inputs').first().json.case_id || '') + ' [PDF Attached]') }}",
+        "message": "={{ (() => {\n  const inp = $('Prepare Inputs').first().json;\n  const isInvoice = (inp.document_type || '').toLowerCase().trim() === 'invoice';\n  const clientName = inp.client_name || 'Client';\n  const caseId = inp.case_id || '';\n  const invoiceId = inp.invoice_id || '';\n  const formattedAmount = Number(inp.invoice_amount || 0).toLocaleString('en-IN');\n  const status = inp.final_status || 'Approved';\n  const decisionBy = inp.decision_by || 'Firm Administration';\n  const currentDate = DateTime.now().setZone('Asia/Kolkata').toFormat('dd LLL yyyy, HH:mm');\n  const clientPortalUrl = $vars.CLIENT_PORTAL_URL;\n\n  if (isInvoice) {\n    return '<div style=\"font-family: -apple-system, BlinkMacSystemFont, \\'Segoe UI\\', Roboto, Helvetica, Arial, sans-serif; max-width: 620px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.06);\">' +\n      '<div style=\"background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #ffffff; padding: 28px 28px 24px 28px; border-bottom: 3px solid #2563eb;\">' +\n        '<h2 style=\"margin: 0; font-size: 21px; font-weight: 700; letter-spacing: -0.3px; color: #ffffff;\">⚖️ Legal Practice Billing Invoice</h2>' +\n        '<p style=\"margin: 6px 0 0 0; color: #94a3b8; font-size: 13px;\">Official Legal Statement &bull; Certified Billing Record</p>' +\n      '</div>' +\n      '<div style=\"padding: 28px;\">' +\n        '<p style=\"margin: 0 0 16px 0; font-size: 15px; color: #334155; line-height: 1.6;\">Dear <strong>' + clientName + '</strong>,</p>' +\n        '<p style=\"margin: 0 0 22px 0; font-size: 14px; color: #475569; line-height: 1.6;\">Please find attached your official certified PDF invoice statement for legal services regarding <strong>Case #' + caseId + '</strong>.</p>' +\n        '<div style=\"background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 22px;\">' +\n          '<table style=\"width: 100%; border-collapse: collapse; font-size: 14px;\">' +\n            '<tr><td style=\"padding: 8px 0; color: #64748b; width: 40%; font-size: 13px;\"><strong>Invoice Reference:</strong></td><td style=\"padding: 8px 0; color: #0f172a;\"><strong style=\"font-family: monospace; background: #e2e8f0; padding: 3px 8px; border-radius: 4px; font-size: 13px;\">' + invoiceId + '</strong></td></tr>' +\n            '<tr><td style=\"padding: 8px 0; color: #64748b; font-size: 13px;\"><strong>Case Reference:</strong></td><td style=\"padding: 8px 0; color: #0f172a; font-weight: 600;\">Case #' + caseId + '</td></tr>' +\n            '<tr><td style=\"padding: 8px 0; color: #64748b; font-size: 13px;\"><strong>Billed Amount:</strong></td><td style=\"padding: 8px 0; color: #059669; font-size: 17px; font-weight: 700;\">₹' + formattedAmount + '</td></tr>' +\n            '<tr><td style=\"padding: 8px 0; color: #64748b; font-size: 13px;\"><strong>Payment / Approval Status:</strong></td><td style=\"padding: 8px 0;\"><span style=\"background: #dcfce7; color: #15803d; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 700; text-transform: uppercase;\">' + status + '</span></td></tr>' +\n            '<tr><td style=\"padding: 8px 0; color: #64748b; font-size: 13px;\"><strong>Audited / Approved By:</strong></td><td style=\"padding: 8px 0; color: #334155; font-size: 13px;\">' + decisionBy + '</td></tr>' +\n            '<tr><td style=\"padding: 8px 0; color: #64748b; font-size: 13px;\"><strong>Date of Statement:</strong></td><td style=\"padding: 8px 0; color: #334155; font-size: 13px;\">' + currentDate + '</td></tr>' +\n          '</table>' +\n        '</div>' +\n        '<div style=\"background: #eff6ff; border-left: 4px solid #2563eb; padding: 14px 18px; border-radius: 4px; margin-bottom: 24px;\">' +\n          '<p style=\"margin: 0; font-size: 13px; color: #1e40af; line-height: 1.5;\">📎 <strong>PDF Document Attached:</strong> An official certified copy (<code>Invoice-' + invoiceId + '.pdf</code>) is attached to this email for your tax, accounting, and compliance records.</p>' +\n        '</div>' +\n        '<p style=\"margin: 0 0 6px 0; font-size: 14px; color: #334155;\">Sincerely,</p>' +\n        '<p style=\"margin: 0; font-size: 14px; font-weight: 600; color: #0f172a;\">Legalspace AI Law Associates</p>' +\n      '</div>' +\n      '<div style=\"background: #f1f5f9; padding: 16px 28px; text-align: center; border-top: 1px solid #e2e8f0; font-size: 12px; color: #64748b;\">This email and its attachments are privileged, confidential, and intended solely for the recipient.<br/>Legalspace AI Law Associates &bull; Automated Legal Practice Infrastructure</div>' +\n    '</div>';\n  }\n\n  return '<div style=\"font-family: -apple-system, BlinkMacSystemFont, \\'Segoe UI\\', Roboto, Helvetica, Arial, sans-serif; max-width: 620px; margin: 0 auto; background-color: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.06);\">' +\n    '<div style=\"background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); color: #ffffff; padding: 26px 28px; border-bottom: 3px solid #2563eb;\">' +\n      '<div style=\"font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; opacity: 0.85; margin-bottom: 4px; font-weight: 600;\">Legal Practice Management &bull; Counsel Representation</div>' +\n      '<h2 style=\"margin: 0; font-size: 22px; font-weight: 700; color: #ffffff;\">⚖️ Client Engagement Agreement</h2>' +\n      '<p style=\"margin: 6px 0 0 0; opacity: 0.95; font-size: 14px;\">Case Reference: <strong style=\"color: #93c5fd;\">#' + caseId + '</strong> &bull; Client: <strong>' + clientName + '</strong></p>' +\n    '</div>' +\n    '<div style=\"padding: 28px 28px 24px 28px;\">' +\n      '<p style=\"font-size: 15px; margin-top: 0; color: #0f172a;\">Dear <strong>' + clientName + '</strong>,</p>' +\n      '<p style=\"font-size: 14px; line-height: 1.6; color: #334155; margin-bottom: 20px;\">We are pleased to confirm that our legal firm has accepted formal representation for <strong>Case #' + caseId + '</strong>. Your official Client Engagement Agreement and Terms of Retainer have been prepared and certified.</p>' +\n      '<div style=\"background-color: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 18px 20px; margin-bottom: 22px;\">' +\n        '<table border=\"0\" cellpadding=\"7\" style=\"width: 100%; border-collapse: collapse; font-size: 14px;\">' +\n          '<tr style=\"border-bottom: 1px solid #edf2f7;\"><td style=\"width: 38%; color: #64748b; font-weight: 500;\">Case Reference ID:</td><td><code style=\"font-size: 15px; font-weight: 700; color: #1e3a8a; background: #e0e7ff; padding: 3px 8px; border-radius: 4px;\">#' + caseId + '</code></td></tr>' +\n          '<tr style=\"border-bottom: 1px solid #edf2f7;\"><td style=\"color: #64748b; font-weight: 500;\">Matter Title / Category:</td><td><strong style=\"color: #0f172a;\">' + (inp.matter_title || inp.category || 'General Legal Practice') + '</strong></td></tr>' +\n          '<tr style=\"border-bottom: 1px solid #edf2f7;\"><td style=\"color: #64748b; font-weight: 500;\">Assigned Lead Advocate:</td><td><strong style=\"color: #0f172a;\">' + (inp.advocate_name || 'Assigned Counsel') + '</strong></td></tr>' +\n          '<tr style=\"border-bottom: 1px solid #edf2f7;\"><td style=\"color: #64748b; font-weight: 500;\">Engagement Status:</td><td><span style=\"background: #dcfce7; color: #15803d; padding: 3px 10px; border-radius: 4px; font-weight: 700; font-size: 12px; text-transform: uppercase;\">ACTIVE &amp; EXECUTED</span></td></tr>' +\n          '<tr><td style=\"color: #64748b; font-weight: 500;\">Execution Date:</td><td><span style=\"color: #475569;\">' + currentDate + '</span></td></tr>' +\n        '</table>' +\n      '</div>' +\n      '<div style=\"background: #eff6ff; border-left: 4px solid #2563eb; padding: 14px 18px; border-radius: 4px; margin-bottom: 24px;\">' +\n        '<p style=\"margin: 0; font-size: 13px; color: #1e40af; line-height: 1.5;\">📎 <strong>Certified PDF Document Attached:</strong> An official signed copy of your Engagement Agreement (<code>Engagement-Agreement-' + caseId + '.pdf</code>) is attached to this email for your permanent legal records.</p>' +\n      '</div>' +\n      '<div style=\"text-align: center; margin: 26px 0 18px 0;\">' +\n        '<a href=\"' + clientPortalUrl + '\" target=\"_blank\" style=\"display: inline-block; background-color: #1a73e8; color: #ffffff; padding: 13px 28px; text-decoration: none; border-radius: 6px; font-weight: 700; font-size: 14px; box-shadow: 0 2px 4px rgba(26,115,232,0.3);\">📱 Open Client Portal &amp; View Case Docket ➔</a>' +\n      '</div>' +\n      '<hr style=\"border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0 16px 0;\"/>' +\n      '<p style=\"font-size: 12px; color: #94a3b8; margin: 0; text-align: center;\">Legal Practice Management System &bull; Privileged &amp; Confidential Legal Communication</p>' +\n    '</div>' +\n  '</div>';\n})() }}",
+        "options": {
+          "appendAttribution": false,
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {}
+            ]
+          }
+        }
+      },
+      "id": "9e7c4a65-5d31-466c-b0c9-9bc1c0c8743b",
+      "name": "Send Document Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1264,
+        0
+      ],
+      "webhookId": "bfe3800d-a5fd-4df2-9bd8-591c82ee2e1a",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "sVmGKpNsTs1T3jnJ",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "out-id",
+              "name": "document_id",
+              "type": "string",
+              "value": "={{ $('Populate Engagement Placeholders').isExecuted ? $('Populate Engagement Placeholders').first().json.documentId : $('Populate Invoice Placeholders').first().json.documentId }}"
+            },
+            {
+              "id": "out-url",
+              "name": "document_url",
+              "type": "string",
+              "value": "={{ 'https://drive.google.com/file/d/' + ($('Populate Engagement Placeholders').isExecuted ? $('Populate Engagement Placeholders').first().json.documentId : $('Populate Invoice Placeholders').first().json.documentId) + '/view' }}"
+            },
+            {
+              "id": "out-type",
+              "name": "document_type",
+              "type": "string",
+              "value": "={{ $('Prepare Inputs').first().json.document_type }}"
+            },
+            {
+              "id": "out-case",
+              "name": "case_id",
+              "type": "string",
+              "value": "={{ $('Prepare Inputs').first().json.case_id }}"
+            },
+            {
+              "id": "out-status",
+              "name": "status",
+              "type": "string",
+              "value": "success"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "85ce7719-9c85-411b-ba9b-450c9a224dd6",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1488,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "copy",
+        "fileId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $vars.DRIVE_ENGAGEMENT_TEMPLATE_ID }}"
+        },
+        "name": "={{ 'Engagement-Agreement-' + ($('Prepare Inputs').first().json.case_id || 'MATTER') + '-' + (($('Prepare Inputs').first().json.client_name || 'Client')).replace(/[^a-zA-Z0-9]/g, '_') }}",
+        "sameFolder": false,
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "cachedResultName": "/ (Root folder)",
+          "mode": "list",
+          "value": "root"
+        },
+        "options": {}
+      },
+      "id": "9e5cce66-9e7a-4d50-907d-4b40830c8908",
+      "name": "Copy Engagement Template",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        736,
+        192
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "3wppgCNBz42xvM8u",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentURL": "={{ $json.id }}",
+        "actionsUi": {
+          "actionFields": [
+            {
+              "action": "replaceAll",
+              "text": "{{DATE}}",
+              "replaceText": "={{ DateTime.now().setZone('Asia/Kolkata').toFormat('dd LLL yyyy') }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{CASE_ID}}",
+              "replaceText": "={{ $('Prepare Inputs').first().json.case_id || '' }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{CLIENT_NAME}}",
+              "replaceText": "={{ $('Prepare Inputs').first().json.client_name || 'Valued Client' }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{CLIENT_EMAIL}}",
+              "replaceText": "={{ $('Prepare Inputs').first().json.client_email || '' }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{CLIENT_ADDRESS}}",
+              "replaceText": "={{ $('Prepare Inputs').first().json.client_address || 'Ahmedabad' }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{CLIENT_LOCATION}}",
+              "replaceText": "={{ $('Prepare Inputs').first().json.client_location || 'Gujarat' }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{CLIENT_PINCODE}}",
+              "replaceText": "={{ $('Prepare Inputs').first().json.client_pincode || '380001' }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{MATTER_TITLE}}",
+              "replaceText": "={{ $('Prepare Inputs').first().json.matter_title || ('Legal Representation - Matter ' + ($('Prepare Inputs').first().json.case_id || '')) }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{CATEGORY}}",
+              "replaceText": "={{ $('Prepare Inputs').first().json.category || 'General Legal Practice' }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{STAGE}}",
+              "replaceText": "={{ $('Prepare Inputs').first().json.stage || 'paper filed' }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{ADVERSE_PARTY}}",
+              "replaceText": "={{ $('Prepare Inputs').first().json.adverse_party || 'None / Not Applicable' }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{ADVOCATE_NAME}}",
+              "replaceText": "={{ $('Prepare Inputs').first().json.advocate_name || 'Assigned Counsel' }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{ADVOCATE_ID}}",
+              "replaceText": "={{ $('Prepare Inputs').first().json.advocate_id || 'ADV-LEGALSPACE' }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{ADVOCATE_EMAIL}}",
+              "replaceText": "={{ $('Prepare Inputs').first().json.advocate_email || 'counsel@legalspace.ai' }}"
+            },
+            {
+              "action": "replaceAll",
+              "text": "{{CONFLICT_STATUS}}",
+              "replaceText": "={{ $('Prepare Inputs').first().json.conflict_status || 'Clear' }}"
+            }
+          ]
+        }
+      },
+      "id": "6dd7780b-1a0e-470b-9892-3bebaa084ce3",
+      "name": "Populate Engagement Placeholders",
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [
+        960,
+        192
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "YfO4OJEjNrs9uFzH",
+          "name": "Google Docs account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "p-doc-type",
+              "name": "document_type",
+              "type": "string",
+              "value": "={{ $json.document_type }}"
+            },
+            {
+              "id": "p-case-id",
+              "name": "case_id",
+              "type": "string",
+              "value": "={{ $json.case_id }}"
+            },
+            {
+              "id": "p-client-name",
+              "name": "client_name",
+              "type": "string",
+              "value": "={{ $json.client_name || 'Valued Client' }}"
+            },
+            {
+              "id": "p-client-email",
+              "name": "client_email",
+              "type": "string",
+              "value": "={{ $json.client_email || $json.recipient_email || '' }}"
+            },
+            {
+              "id": "p-client-address",
+              "name": "client_address",
+              "type": "string",
+              "value": "={{ $json.client_address || 'Ahmedabad' }}"
+            },
+            {
+              "id": "p-client-location",
+              "name": "client_location",
+              "type": "string",
+              "value": "={{ $json.client_location || 'Gujarat' }}"
+            },
+            {
+              "id": "p-client-pincode",
+              "name": "client_pincode",
+              "type": "string",
+              "value": "={{ $json.client_pincode || '380001' }}"
+            },
+            {
+              "id": "p-matter-title",
+              "name": "matter_title",
+              "type": "string",
+              "value": "={{ $json.matter_title || ('Legal Representation - Matter ' + ($json.case_id || '')) }}"
+            },
+            {
+              "id": "p-category",
+              "name": "category",
+              "type": "string",
+              "value": "={{ $json.category || 'General Legal Practice' }}"
+            },
+            {
+              "id": "p-stage",
+              "name": "stage",
+              "type": "string",
+              "value": "={{ $json.stage || 'paper filed' }}"
+            },
+            {
+              "id": "p-adverse-party",
+              "name": "adverse_party",
+              "type": "string",
+              "value": "={{ $json.adverse_party || 'None / Not Applicable' }}"
+            },
+            {
+              "id": "p-advocate-name",
+              "name": "advocate_name",
+              "type": "string",
+              "value": "={{ $json.advocate_name || 'Assigned Counsel' }}"
+            },
+            {
+              "id": "p-advocate-id",
+              "name": "advocate_id",
+              "type": "string",
+              "value": "={{ $json.advocate_id || 'ADV-LEGALSPACE' }}"
+            },
+            {
+              "id": "p-advocate-email",
+              "name": "advocate_email",
+              "type": "string",
+              "value": "={{ $json.advocate_email || 'counsel@legalspace.ai' }}"
+            },
+            {
+              "id": "p-conflict-status",
+              "name": "conflict_status",
+              "type": "string",
+              "value": "={{ $json.conflict_status || 'Clear' }}"
+            },
+            {
+              "id": "p-invoice-id",
+              "name": "invoice_id",
+              "type": "string",
+              "value": "={{ $json.invoice_id || '' }}"
+            },
+            {
+              "id": "p-invoice-amount",
+              "name": "invoice_amount",
+              "type": "number",
+              "value": "={{ $json.invoice_amount || 0 }}"
+            },
+            {
+              "id": "p-final-status",
+              "name": "final_status",
+              "type": "string",
+              "value": "={{ $json.final_status || 'Approved' }}"
+            },
+            {
+              "id": "p-decision-by",
+              "name": "decision_by",
+              "type": "string",
+              "value": "={{ $json.decision_by || 'Auto-Audited' }}"
+            },
+            {
+              "id": "p-outcome-status",
+              "name": "outcome_status",
+              "type": "string",
+              "value": "={{ $json.outcome_status || 'Approved' }}"
+            },
+            {
+              "id": "p-requester-name",
+              "name": "requester_name",
+              "type": "string",
+              "value": "={{ $json.requester_name || '' }}"
+            },
+            {
+              "id": "p-requester-role",
+              "name": "requester_role",
+              "type": "string",
+              "value": "={{ $json.requester_role || '' }}"
+            },
+            {
+              "id": "p-send-email",
+              "name": "send_email",
+              "type": "boolean",
+              "value": "={{ $json.send_email !== false && $json.send_email !== 'false' }}"
+            }
+          ],
+          "includeOtherFields": true,
+          "mode": "manual"
+        },
+        "options": {}
+      },
+      "id": "f85b963d-8bbb-4b91-bd05-b8d8822b59cf",
+      "name": "Prepare Inputs",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        288,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "cond-send-email",
+              "leftValue": "={{ $('Prepare Inputs').first().json.send_email !== false && $('Prepare Inputs').first().json.send_email !== 'false' }}",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              },
+              "rightValue": true
+            }
+          ],
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          }
+        },
+        "options": {}
+      },
+      "id": "76282d85-e4c1-48cd-9176-596d89769f6f",
+      "name": "Send Email?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        816,
+        80
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Is Invoice?": {
+      "main": [
+        [
+          {
+            "node": "Copy Invoice Template",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Copy Engagement Template",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Populate Invoice Placeholders": {
+      "main": [
+        [
+          {
+            "node": "Share Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Export as PDF": {
+      "main": [
+        [
+          {
+            "node": "Send Document Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Document Email": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Copy Invoice Template": {
+      "main": [
+        [
+          {
+            "node": "Populate Invoice Placeholders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Copy Engagement Template": {
+      "main": [
+        [
+          {
+            "node": "Populate Engagement Placeholders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Populate Engagement Placeholders": {
+      "main": [
+        [
+          {
+            "node": "Share Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Prepare Inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Inputs": {
+      "main": [
+        [
+          {
+            "node": "Is Invoice?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Share Document": {
+      "main": [
+        [
+          {
+            "node": "Send Email?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email?": {
+      "main": [
+        [
+          {
+            "node": "Export as PDF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "Dvao8HFN2GnGuaQZ"
+  },
+  "versionId": "59260f2e-e8db-475b-baf8-3e1a8773f82b",
+  "meta": {
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp",
+    "instanceId": "1b7f2b8bd7379ce28884aabf2215f3c90ff32a7e4c4f1088ddd7ce0532074b6f"
+  },
+  "nodeGroups": [
+    {
+      "id": "73356c3e-1dde-4774-9f93-1bf259d53eb6",
+      "name": "Template Cloner & Placeholder Engine",
+      "nodeIds": [
+        "f85b963d-8bbb-4b91-bd05-b8d8822b59cf",
+        "be24befa-ed96-4b17-afb5-40c97284276b",
+        "9ccff304-7b03-4a4b-8b19-ba4ee23f5097",
+        "b7472584-ba14-4449-8fd2-c9158ab248fd",
+        "9e5cce66-9e7a-4d50-907d-4b40830c8908",
+        "6dd7780b-1a0e-470b-9892-3bebaa084ce3",
+        "f2b5b945-7324-49c7-98c8-fa439d36f347"
+      ],
+      "description": "Prepares input variables, branches between invoice and engagement agreements, clones Google Docs templates, and populates placeholders."
+    },
+    {
+      "id": "457faee9-77da-4300-90c0-602eb1af39f9",
+      "name": "Document Dispatch & Response Formatter",
+      "nodeIds": [
+        "76282d85-e4c1-48cd-9176-596d89769f6f",
+        "53beb191-0496-4a36-8636-f60af4e2a3c7",
+        "9e7c4a65-5d31-466c-b0c9-9bc1c0c8743b",
+        "85ce7719-9c85-411b-ba9b-450c9a224dd6"
+      ],
+      "description": "Evaluates whether email dispatch is enabled, exports PDF and dispatches email when true, and formats response."
+    }
+  ],
+  "id": "8eIHj8Skzo1jLLVW",
+  "tags": []
+}

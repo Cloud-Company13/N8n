@@ -1,0 +1,1310 @@
+{
+  "name": "Case Closure Guardrail (Reusable)",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "case_id"
+            },
+            {
+              "name": "requester_role"
+            },
+            {
+              "name": "closure_remarks"
+            },
+            {
+              "name": "notify_email"
+            },
+            {
+              "name": "action"
+            },
+            {
+              "name": "selected_bill"
+            }
+          ]
+        }
+      },
+      "id": "9eb0f508-4d30-4591-8f0f-753734db09d5",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        -32
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $vars.TABLE_CASE_DIRECTORY || 'PFF0bSgccDIC5E5T' }}"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "case_id",
+              "condition": "ilike",
+              "keyValue": "={{ $json.case_id.trim() }}"
+            }
+          ]
+        },
+        "limit": 1
+      },
+      "id": "461d425e-e0bf-4bfd-b5ba-04cb7fa5be6f",
+      "name": "Fetch Case Directory",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        288,
+        192
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "cond-case-exists",
+              "leftValue": "={{ Boolean($json.case_id) }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "rightValue": true
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "16ae8076-0d9f-4866-86b0-7280a9dc1a0f",
+      "name": "Is Case Found?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        512,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $vars.TABLE_WORKFLOW_HISTORY || 'zLUIArHa9Po3oyoW' }}"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "case_id",
+              "condition": "ilike",
+              "keyValue": "={{ $('Execute Workflow Trigger').first().json.case_id.trim() }}"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "id": "8a777bc4-980a-4b0a-b7d5-8a8b52d5468a",
+      "name": "Fetch Invoices for Case",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        736,
+        96
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "rule-admin-waiver",
+                    "leftValue": "={{ ($('Execute Workflow Trigger').first().json.action || '').toString().toLowerCase().trim() === 'waiver' && ($('Execute Workflow Trigger').first().json.requester_role || '').toString().toLowerCase().trim() === 'firm administrator' }}",
+                    "operator": {
+                      "operation": "true",
+                      "singleValue": true,
+                      "type": "boolean"
+                    },
+                    "rightValue": true
+                  }
+                ],
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                }
+              },
+              "renameOutput": true,
+              "outputKey": "Admin Waiver (Override)"
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "rule-ongoing-trial",
+                    "leftValue": "={{ ['paper filed', 'onboarding', 'hearing', 'under-trial', 'under_trial', 'under trial', 'paper-filed'].includes(($('Fetch Case Directory').first().json.legal_proceeding_stage || 'hearing').toString().toLowerCase().trim()) }}",
+                    "operator": {
+                      "operation": "true",
+                      "singleValue": true,
+                      "type": "boolean"
+                    },
+                    "rightValue": true
+                  }
+                ],
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                }
+              },
+              "renameOutput": true,
+              "outputKey": "Trial Ongoing (Active)"
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "rule-final-judg-pending",
+                    "leftValue": "={{ (() => { const stage = ($('Fetch Case Directory').first().json.legal_proceeding_stage || '').toString().toLowerCase().trim(); if (stage !== 'final judgment') return false; const targetBill = ($('Execute Workflow Trigger').first().json.selected_bill || $('Execute Workflow Trigger').first().json.invoice_id || '').toString().toLowerCase().trim(); const allInvs = $('Fetch Invoices for Case').all().filter(i => Boolean(i.json.invoice_id) && (i.json.invoice_id || '').startsWith('INV-') && (i.json.case_id || '').toLowerCase().trim() === $('Execute Workflow Trigger').first().json.case_id.toLowerCase().trim()); const relevantInvs = (targetBill && targetBill !== 'all') ? allInvs.filter(i => (i.json.invoice_id || '').toLowerCase().trim() === targetBill) : allInvs; if (relevantInvs.length === 0) return true; return relevantInvs.some(i => (i.json.invoice_status || 'pending').toLowerCase().trim() === 'pending' || ['in progress', 'timed out'].includes((i.json.final_status || '').toLowerCase().trim())); })() }}",
+                    "operator": {
+                      "operation": "true",
+                      "singleValue": true,
+                      "type": "boolean"
+                    },
+                    "rightValue": true
+                  }
+                ],
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                }
+              },
+              "renameOutput": true,
+              "outputKey": "Pending Invoices (Blocked)"
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "rule-final-judg-paid",
+                    "leftValue": "={{ (() => { const stage = ($('Fetch Case Directory').first().json.legal_proceeding_stage || '').toString().toLowerCase().trim(); if (stage !== 'final judgment') return false; const targetBill = ($('Execute Workflow Trigger').first().json.selected_bill || $('Execute Workflow Trigger').first().json.invoice_id || '').toString().toLowerCase().trim(); const allInvs = $('Fetch Invoices for Case').all().filter(i => Boolean(i.json.invoice_id) && (i.json.invoice_id || '').startsWith('INV-') && (i.json.case_id || '').toLowerCase().trim() === $('Execute Workflow Trigger').first().json.case_id.toLowerCase().trim()); const relevantInvs = (targetBill && targetBill !== 'all') ? allInvs.filter(i => (i.json.invoice_id || '').toLowerCase().trim() === targetBill) : allInvs; return relevantInvs.length > 0 && relevantInvs.every(i => (i.json.invoice_status || '').toLowerCase().trim() === 'paid' && (i.json.final_status || '').toLowerCase().trim() === 'approved'); })() }}",
+                    "operator": {
+                      "operation": "true",
+                      "singleValue": true,
+                      "type": "boolean"
+                    },
+                    "rightValue": true
+                  }
+                ],
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                }
+              },
+              "renameOutput": true,
+              "outputKey": "All Invoices Paid (Closed)"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Unhandled Proceeding Stage"
+        }
+      },
+      "id": "9a1718df-e505-49d6-8a50-0b02e5b42ba1",
+      "name": "Evaluate Case Closure Rules",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        752,
+        -80
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $vars.TABLE_CASE_DIRECTORY || 'PFF0bSgccDIC5E5T' }}"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "case_id",
+              "condition": "ilike",
+              "keyValue": "={{ $('Execute Workflow Trigger').first().json.case_id.trim() }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "schema": [
+            {
+              "id": "case_status",
+              "displayName": "case_status",
+              "type": "string"
+            }
+          ],
+          "value": {
+            "case_status": "active"
+          }
+        },
+        "options": {}
+      },
+      "id": "f22bc36b-732c-453f-8865-63c332e1f455",
+      "name": "Set Case Active",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1040,
+        -96
+      ],
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ [$('Fetch Case Directory').first().json.case_owner_email, $('Fetch Case Directory').first().json.firm_admin_email || $vars.FIRM_ADMIN_EMAIL, $('Execute Workflow Trigger').first().json.notify_email].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(', ') }}",
+        "subject": "=Case {{ $('Execute Workflow Trigger').first().json.case_id }} - Closure Disallowed (Trial Ongoing)",
+        "message": "=<div style=\"font-family: Arial, sans-serif; line-height: 1.6; color: #1e293b; max-width: 600px; margin: 0 auto; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;\"><div style=\"background-color: #0f172a; color: #ffffff; padding: 20px 24px;\"><h2 style=\"margin: 0; font-size: 20px; font-weight: 700;\">⚖️ Legal Practice Management Portal</h2><p style=\"margin: 6px 0 0 0; opacity: 0.9; font-size: 14px;\">Case Reference: <strong>#{{ $('Execute Workflow Trigger').first().json.case_id }}</strong> &bull; {{ $('Fetch Case Directory').first().json.client_name || 'Client' }}</p></div><div style=\"padding: 24px;\"><p>Dear <strong>{{ $('Fetch Case Directory').first().json.client_name || 'Valued Client' }}</strong>,</p><p>A formal case closure request was submitted and evaluated for <strong>Case #{{ $('Execute Workflow Trigger').first().json.case_id }}</strong>.</p><div style=\"background-color: #fffbeb; border-left: 4px solid #d97706; border: 1px solid #fde68a; border-left-width: 4px; padding: 16px; margin: 18px 0; border-radius: 4px;\"><h4 style=\"margin: 0 0 10px 0; color: #b45309; font-size: 15px;\">⚠️ Case Closure Disallowed &mdash; Trial Ongoing</h4><table border=\"0\" cellpadding=\"5\" style=\"width: 100%; border-collapse: collapse; font-size: 14px;\"><tr><td style=\"width: 38%; color: #64748b;\"><strong>Case Reference ID:</strong></td><td><code style=\"font-size: 14px; font-weight: bold; color: #0f172a;\">#{{ $('Execute Workflow Trigger').first().json.case_id }}</code></td></tr><tr><td style=\"color: #64748b;\"><strong>Current Legal Stage:</strong></td><td><span style=\"background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 4px; font-weight: 600; text-transform: uppercase;\">{{ $('Fetch Case Directory').first().json.legal_proceeding_stage || 'hearing' }}</span></td></tr><tr><td style=\"color: #64748b;\"><strong>Assigned Advocate:</strong></td><td><strong>{{ $('Fetch Case Directory').first().json.advocate_name || 'Pending Assignment' }}</strong></td></tr><tr><td style=\"color: #64748b;\"><strong>Case Directory Status:</strong></td><td><span style=\"background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 4px; font-weight: 600; text-transform: uppercase;\">ACTIVE</span></td></tr></table></div><div style=\"background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 14px 16px; border-radius: 6px; margin-bottom: 18px;\"><strong style=\"color: #334155;\">Why was closure disallowed?</strong><p style=\"margin: 6px 0 0 0; font-size: 13px; color: #475569; line-height: 1.5;\">Court proceedings for this matter are currently active in the <strong>{{ $('Fetch Case Directory').first().json.legal_proceeding_stage || 'hearing' }}</strong> stage. Under court procedural rules and firm governance standards, a case can only be formally closed after final judgment has been delivered by the court. The matter remains active on the court docket.</p></div><div style=\"text-align: center; margin: 25px 0 15px 0;\"><a href=\"{{ $vars.PRACTICE_PORTAL_URL }}\" target=\"_blank\" style=\"background-color: #1a73e8; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;\">📱 Access Case in Legal Portal</a></div><hr style=\"border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;\"/><p style=\"font-size: 12px; color: #64748b; margin: 0; text-align: center;\">Legal Practice Management System &bull; Privileged & Confidential Legal Communication</p></div></div>",
+        "options": {}
+      },
+      "id": "b7c2a73d-5de5-4635-8c76-3c81155053c6",
+      "name": "Send Ongoing Trial Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1488,
+        -96
+      ],
+      "webhookId": "3b2c5612-5c47-4fa2-9525-fd5b289c71b0",
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "sVmGKpNsTs1T3jnJ",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "dr1",
+              "name": "success",
+              "type": "boolean",
+              "value": false
+            },
+            {
+              "id": "dr2",
+              "name": "case_status",
+              "type": "string",
+              "value": "active"
+            },
+            {
+              "id": "dr3",
+              "name": "message",
+              "type": "string",
+              "value": "=Case {{ $('Execute Workflow Trigger').first().json.case_id }} is currently at the '{{ $('Fetch Case Directory').first().json.legal_proceeding_stage || 'hearing' }}' proceeding stage. Court proceedings are still active, so the case status remains 'active'."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1f623eaf-545c-494d-b091-e5de39722cd7",
+      "name": "Disallowed Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1712,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $vars.TABLE_CASE_DIRECTORY || 'PFF0bSgccDIC5E5T' }}"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "case_id",
+              "condition": "ilike",
+              "keyValue": "={{ $('Execute Workflow Trigger').first().json.case_id.trim() }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "schema": [
+            {
+              "id": "case_status",
+              "displayName": "case_status",
+              "type": "string"
+            }
+          ],
+          "value": {
+            "case_status": "closure-blocked"
+          }
+        },
+        "options": {}
+      },
+      "id": "d0c77413-da99-4bc8-9255-69b8a74f0f6f",
+      "name": "Set Case Closure Blocked",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1040,
+        96
+      ],
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ [$('Fetch Case Directory').first().json.case_owner_email, $('Fetch Case Directory').first().json.firm_admin_email || $vars.FIRM_ADMIN_EMAIL, $('Execute Workflow Trigger').first().json.notify_email].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(', ') }}",
+        "subject": "=[ALERT] Case Closure Blocked: Pending Invoices for Case {{ $('Execute Workflow Trigger').first().json.case_id }}",
+        "message": "=<div style=\"font-family: Arial, sans-serif; line-height: 1.6; color: #1e293b; max-width: 600px; margin: 0 auto; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;\"><div style=\"background-color: #0f172a; color: #ffffff; padding: 20px 24px;\"><h2 style=\"margin: 0; font-size: 20px; font-weight: 700;\">⚖️ Legal Practice Management Portal</h2><p style=\"margin: 6px 0 0 0; opacity: 0.9; font-size: 14px;\">Financial Guardrail Alert &bull; Case <strong>#{{ $('Execute Workflow Trigger').first().json.case_id }}</strong></p></div><div style=\"padding: 24px;\"><p>Dear <strong>{{ $('Fetch Case Directory').first().json.client_name || 'Valued Client' }}</strong>,</p><p>A formal case closure request was submitted for <strong>Case #{{ $('Execute Workflow Trigger').first().json.case_id }}</strong>.</p><div style=\"background-color: #fef2f2; border-left: 4px solid #dc2626; border: 1px solid #fecaca; border-left-width: 4px; padding: 16px; margin: 18px 0; border-radius: 4px;\"><h4 style=\"margin: 0 0 10px 0; color: #991b1b; font-size: 15px;\">⛔ Case Closure Blocked &mdash; Outstanding Invoices</h4><table border=\"0\" cellpadding=\"5\" style=\"width: 100%; border-collapse: collapse; font-size: 14px;\"><tr><td style=\"width: 38%; color: #64748b;\"><strong>Case Reference ID:</strong></td><td><code style=\"font-size: 14px; font-weight: bold; color: #0f172a;\">#{{ $('Execute Workflow Trigger').first().json.case_id }}</code></td></tr><tr><td style=\"color: #64748b;\"><strong>Legal Stage:</strong></td><td><span style=\"background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 4px; font-weight: 600;\">FINAL JUDGMENT</span></td></tr><tr><td style=\"color: #64748b;\"><strong>Guardrail Trigger:</strong></td><td><strong style=\"color: #b91c1c;\">Pending / Unsettled Invoices on File</strong></td></tr><tr><td style=\"color: #64748b;\"><strong>Case Status Updated To:</strong></td><td><span style=\"background: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 4px; font-weight: 600; text-transform: uppercase;\">CLOSURE-BLOCKED</span></td></tr></table></div><div style=\"background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 14px 16px; border-radius: 6px; margin-bottom: 18px;\"><strong style=\"color: #334155;\">Required Action:</strong><p style=\"margin: 6px 0 0 0; font-size: 13px; color: #475569; line-height: 1.5;\">Court proceedings have reached Final Judgment; however, firm financial guardrail policies prohibit closing matters with outstanding dues. All pending invoices must be settled and marked as <strong>paid</strong> before the case can be formally closed.</p></div><div style=\"text-align: center; margin: 25px 0 15px 0;\"><a href=\"{{ $vars.PRACTICE_PORTAL_URL }}\" target=\"_blank\" style=\"background-color: #dc2626; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;\">💳 Settle Pending Invoices in Portal</a></div><hr style=\"border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;\"/><p style=\"font-size: 12px; color: #64748b; margin: 0; text-align: center;\">Legal Practice Management System &bull; Privileged & Confidential Legal Communication</p></div></div>",
+        "options": {}
+      },
+      "id": "dbcf7566-af30-429d-8115-8d570e399748",
+      "name": "Send Closure Blocked Alert",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1488,
+        96
+      ],
+      "webhookId": "f5bdf519-6577-4fb3-b7ab-49f42ea40e54",
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "sVmGKpNsTs1T3jnJ",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "br1",
+              "name": "success",
+              "type": "boolean",
+              "value": false
+            },
+            {
+              "id": "br2",
+              "name": "case_status",
+              "type": "string",
+              "value": "closure-blocked"
+            },
+            {
+              "id": "br3",
+              "name": "message",
+              "type": "string",
+              "value": "=Case {{ $('Execute Workflow Trigger').first().json.case_id }}{{ ($('Execute Workflow Trigger').first().json.selected_bill ? (' for Invoice ' + $('Execute Workflow Trigger').first().json.selected_bill) : '') }} has reached final judgment, but has pending or unapproved invoices on file. Under firm financial guardrail policies, the status is set to 'closure-blocked'. All pending invoices must be settled before closure."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "28b8102f-10dc-4623-b287-a378457bad2a",
+      "name": "Blocked Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1712,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $vars.TABLE_CASE_DIRECTORY || 'PFF0bSgccDIC5E5T' }}"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "case_id",
+              "condition": "ilike",
+              "keyValue": "={{ $('Execute Workflow Trigger').first().json.case_id.trim() }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "schema": [
+            {
+              "id": "case_status",
+              "displayName": "case_status",
+              "type": "string"
+            }
+          ],
+          "value": {
+            "case_status": "closed"
+          }
+        },
+        "options": {}
+      },
+      "id": "04656f07-e688-40cf-a936-b9b282edc5d0",
+      "name": "Set Case Closed",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1040,
+        288
+      ],
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ [$('Fetch Case Directory').first().json.case_owner_email, $('Fetch Case Directory').first().json.firm_admin_email || $vars.FIRM_ADMIN_EMAIL, $('Execute Workflow Trigger').first().json.notify_email].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(', ') }}",
+        "subject": "=[Case Closed] Case {{ $('Execute Workflow Trigger').first().json.case_id }} Successfully Closed",
+        "message": "=<div style=\"font-family: Arial, sans-serif; line-height: 1.6; color: #1e293b; max-width: 600px; margin: 0 auto; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;\"><div style=\"background-color: #0f172a; color: #ffffff; padding: 20px 24px;\"><h2 style=\"margin: 0; font-size: 20px; font-weight: 700;\">⚖️ Legal Practice Management Portal</h2><p style=\"margin: 6px 0 0 0; opacity: 0.9; font-size: 14px;\">Case Closure Confirmation &bull; Case <strong>#{{ $('Execute Workflow Trigger').first().json.case_id }}</strong></p></div><div style=\"padding: 24px;\"><p>Dear <strong>{{ $('Fetch Case Directory').first().json.client_name || 'Valued Client' }}</strong>,</p><p>We are pleased to confirm that <strong>Case #{{ $('Execute Workflow Trigger').first().json.case_id }}</strong> has satisfied all legal and financial criteria and is now officially closed.</p><div style=\"background-color: #f0fdf4; border-left: 4px solid #16a34a; border: 1px solid #bbf7d0; border-left-width: 4px; padding: 16px; margin: 18px 0; border-radius: 4px;\"><h4 style=\"margin: 0 0 10px 0; color: #15803d; font-size: 15px;\">✅ Case Officially Closed &amp; Archived</h4><table border=\"0\" cellpadding=\"5\" style=\"width: 100%; border-collapse: collapse; font-size: 14px;\"><tr><td style=\"width: 38%; color: #64748b;\"><strong>Case Reference ID:</strong></td><td><code style=\"font-size: 14px; font-weight: bold; color: #0f172a;\">#{{ $('Execute Workflow Trigger').first().json.case_id }}</code></td></tr><tr><td style=\"color: #64748b;\"><strong>Legal Stage:</strong></td><td><span style=\"background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 4px; font-weight: 600;\">FINAL JUDGMENT DELIVERED</span></td></tr><tr><td style=\"color: #64748b;\"><strong>Financial Status:</strong></td><td><span style=\"background: #dcfce7; color: #15803d; padding: 2px 8px; border-radius: 4px; font-weight: 600;\">100% INVOICES SETTLED &amp; PAID</span></td></tr><tr><td style=\"color: #64748b;\"><strong>Case Status:</strong></td><td><span style=\"background: #dcfce7; color: #15803d; padding: 2px 8px; border-radius: 4px; font-weight: 600; text-transform: uppercase;\">CLOSED</span></td></tr><tr><td style=\"color: #64748b;\"><strong>Closure Date:</strong></td><td><strong>{{ $now.toFormat('dd/MM/yyyy HH:mm:ss') }}</strong></td></tr></table></div><div style=\"background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 14px 16px; border-radius: 6px; margin-bottom: 18px;\"><strong style=\"color: #334155;\">Archival Summary:</strong><p style=\"margin: 6px 0 0 0; font-size: 13px; color: #475569; line-height: 1.5;\">The case matter is now formally closed and permanently archived in the firm's central directory. All filings, certified documents, and billing ledgers remain securely accessible through the portal for your records.</p></div><div style=\"text-align: center; margin: 25px 0 15px 0;\"><a href=\"{{ $vars.PRACTICE_PORTAL_URL }}\" target=\"_blank\" style=\"background-color: #16a34a; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;\">📁 View Case Archive in Portal</a></div><hr style=\"border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;\"/><p style=\"font-size: 12px; color: #64748b; margin: 0; text-align: center;\">Legal Practice Management System &bull; Privileged & Confidential Legal Communication</p></div></div>",
+        "options": {}
+      },
+      "id": "e06a8d12-69f6-4c4f-9af7-3b134885b165",
+      "name": "Send Case Closed Confirmation",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1488,
+        288
+      ],
+      "webhookId": "f884e4d5-3081-49b9-a6b0-4c74313bb5b0",
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "sVmGKpNsTs1T3jnJ",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cr1",
+              "name": "success",
+              "type": "boolean",
+              "value": true
+            },
+            {
+              "id": "cr2",
+              "name": "case_status",
+              "type": "string",
+              "value": "closed"
+            },
+            {
+              "id": "cr3",
+              "name": "message",
+              "type": "string",
+              "value": "=Case {{ $('Execute Workflow Trigger').first().json.case_id }}{{ ($('Execute Workflow Trigger').first().json.selected_bill ? (' (Invoice: ' + $('Execute Workflow Trigger').first().json.selected_bill + ')') : '') }} has satisfied all criteria (Final Judgment delivered and invoice payment verified). The status is now officially 'closed'."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "aa70c597-095d-4376-92a6-972cec40ff9a",
+      "name": "Closed Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1712,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ur1",
+              "name": "success",
+              "type": "boolean",
+              "value": false
+            },
+            {
+              "id": "ur2",
+              "name": "case_status",
+              "type": "string",
+              "value": "unhandled"
+            },
+            {
+              "id": "ur3",
+              "name": "message",
+              "type": "string",
+              "value": "=Case {{ $('Execute Workflow Trigger').first().json.case_id }} is in an unhandled proceeding stage: {{ $('Fetch Case Directory').first().json.legal_proceeding_stage || 'Unknown' }}."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "72193323-1cf7-49b3-8609-192ebe29a40f",
+      "name": "Unhandled Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1136,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cnf1",
+              "name": "success",
+              "type": "boolean",
+              "value": false
+            },
+            {
+              "id": "cnf2",
+              "name": "case_status",
+              "type": "string",
+              "value": "not_found"
+            },
+            {
+              "id": "cnf3",
+              "name": "message",
+              "type": "string",
+              "value": "=<h3>Case Not Found</h3><p>No case record was found for '{{ $('Execute Workflow Trigger').first().json.case_id }}'.</p><p>Please verify that the Case ID is spelled correctly (e.g. <code>CASE-TRIAL-01</code>, <code>CASE-BLOCK-01</code>, <code>CASE-CLOSE-01</code>) and try again.</p>"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c3ac9670-4f1f-499b-ae26-95d3bf925925",
+      "name": "Case Not Found Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        736,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $vars.TABLE_CASE_CLOSURE_HISTORY || 'cWxevm6TQS8kdYZz' }}"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "case_id": "={{ $('Execute Workflow Trigger').first().json.case_id }}",
+            "description": "=Closure disallowed: Case is currently at {{ $('Fetch Case Directory').first().json.legal_proceeding_stage || 'hearing' }} stage. Court proceedings are still active.",
+            "requested_by": "={{ $('Execute Workflow Trigger').first().json.requester_role || 'Advocate' }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "displayName": "case_id",
+              "id": "case_id",
+              "type": "string"
+            },
+            {
+              "displayName": "description",
+              "id": "description",
+              "type": "string"
+            },
+            {
+              "displayName": "requested_by",
+              "id": "requested_by",
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "a101-audit-disallowed",
+      "name": "Log Audit Trail: Disallowed",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1264,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $vars.TABLE_CASE_CLOSURE_HISTORY || 'cWxevm6TQS8kdYZz' }}"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "schema": [
+            {
+              "displayName": "case_id",
+              "id": "case_id",
+              "type": "string"
+            },
+            {
+              "displayName": "description",
+              "id": "description",
+              "type": "string"
+            },
+            {
+              "displayName": "requested_by",
+              "id": "requested_by",
+              "type": "string"
+            }
+          ],
+          "value": {
+            "case_id": "={{ $('Execute Workflow Trigger').first().json.case_id }}",
+            "description": "=Closure blocked: Final Judgment reached, but case has outstanding unpaid invoices on file.",
+            "requested_by": "={{ $('Execute Workflow Trigger').first().json.requester_role || 'Advocate' }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "a102-audit-blocked",
+      "name": "Log Audit Trail: Blocked",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1264,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $vars.TABLE_CASE_CLOSURE_HISTORY || 'cWxevm6TQS8kdYZz' }}"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "schema": [
+            {
+              "displayName": "case_id",
+              "id": "case_id",
+              "type": "string"
+            },
+            {
+              "displayName": "description",
+              "id": "description",
+              "type": "string"
+            },
+            {
+              "displayName": "requested_by",
+              "id": "requested_by",
+              "type": "string"
+            }
+          ],
+          "value": {
+            "case_id": "={{ $('Execute Workflow Trigger').first().json.case_id }}",
+            "description": "=Case closure approved: Final Judgment delivered and 100% of invoices are verified paid. All obligations cleared.",
+            "requested_by": "={{ $('Execute Workflow Trigger').first().json.requester_role || 'Advocate' }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "a103-audit-closed",
+      "name": "Log Audit Trail: Closed",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1264,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $vars.TABLE_CASE_DIRECTORY || 'PFF0bSgccDIC5E5T' }}"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "case_id",
+              "condition": "ilike",
+              "keyValue": "={{ $('Execute Workflow Trigger').first().json.case_id.trim() }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "schema": [
+            {
+              "displayName": "case_status",
+              "id": "case_status",
+              "type": "string"
+            }
+          ],
+          "value": {
+            "case_status": "={{ (!($('Execute Workflow Trigger').first().json.selected_bill) || $('Execute Workflow Trigger').first().json.selected_bill.toUpperCase() === 'ALL' || $('Fetch Invoices for Case').all().filter(i => Boolean(i.json.invoice_id) && (i.json.case_id || '').toLowerCase().trim() === $('Execute Workflow Trigger').first().json.case_id.toLowerCase().trim() && (i.json.invoice_id || '').toLowerCase().trim() !== $('Execute Workflow Trigger').first().json.selected_bill.toLowerCase().trim() && (i.json.invoice_status || 'pending').toLowerCase().trim() === 'pending').length === 0) ? 'closed' : ($('Fetch Case Directory').first().json.case_status || 'closure-blocked') }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "679157dc-1d2d-4906-b3cd-3b871e6fd353",
+      "name": "Set Case Closed (Waiver)",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1040,
+        -288
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $vars.TABLE_CASE_CLOSURE_HISTORY || 'cWxevm6TQS8kdYZz' }}"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [],
+          "schema": [
+            {
+              "displayName": "case_id",
+              "id": "case_id",
+              "type": "string"
+            },
+            {
+              "displayName": "description",
+              "id": "description",
+              "type": "string"
+            },
+            {
+              "displayName": "requested_by",
+              "id": "requested_by",
+              "type": "string"
+            }
+          ],
+          "value": {
+            "case_id": "={{ $('Execute Workflow Trigger').first().json.case_id }}",
+            "description": "={{ 'Administrative Waiver: ' + (($('Execute Workflow Trigger').first().json.selected_bill && $('Execute Workflow Trigger').first().json.selected_bill.toUpperCase() !== 'ALL') ? ('Invoice ' + $('Execute Workflow Trigger').first().json.selected_bill + ' waived/written off. ') : 'All pending bills waived for case matter. ') + 'Remaining pending bills: ' + ($('Fetch Invoices for Case').all().filter(i => Boolean(i.json.invoice_id) && (i.json.case_id || '').toLowerCase().trim() === $('Execute Workflow Trigger').first().json.case_id.toLowerCase().trim() && ((!($('Execute Workflow Trigger').first().json.selected_bill) || $('Execute Workflow Trigger').first().json.selected_bill.toUpperCase() === 'ALL') ? false : (i.json.invoice_id || '').toLowerCase().trim() !== $('Execute Workflow Trigger').first().json.selected_bill.toLowerCase().trim()) && (i.json.invoice_status || 'pending').toLowerCase().trim() === 'pending').length) + '. Reason: ' + ($('Execute Workflow Trigger').first().json.closure_remarks || 'Administrative override approved by Firm Administrator') }}",
+            "requested_by": "Firm Administrator (Waiver Override)"
+          }
+        },
+        "options": {}
+      },
+      "id": "e9f49c83-5f23-42e5-a33c-88549b80a18c",
+      "name": "Log Audit Trail: Waiver",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1488,
+        -288
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ [$('Fetch Case Directory').first().json.case_owner_email, $('Fetch Case Directory').first().json.firm_admin_email || $vars.FIRM_ADMIN_EMAIL, $('Execute Workflow Trigger').first().json.notify_email].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(', ') }}",
+        "subject": "=[NOTICE] Case {{ $('Execute Workflow Trigger').first().json.case_id }} Closed via Administrative Waiver",
+        "message": "=<div style=\"font-family: Arial, sans-serif; line-height: 1.6; color: #1e293b; max-width: 600px; margin: 0 auto; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;\"><div style=\"background-color: #0f172a; color: #ffffff; padding: 20px 24px;\"><h2 style=\"margin: 0; font-size: 20px; font-weight: 700;\">⚖️ Legal Practice Management Portal</h2><p style=\"margin: 6px 0 0 0; opacity: 0.9; font-size: 14px;\">Administrative Waiver Notice &bull; Case <strong>#{{ $('Execute Workflow Trigger').first().json.case_id }}</strong></p></div><div style=\"padding: 24px;\"><p>Dear <strong>{{ $('Fetch Case Directory').first().json.client_name || 'Valued Client' }}</strong>,</p><p>An official <strong>Administrative Fee Waiver / Write-Off</strong> has been processed for <strong>Case #{{ $('Execute Workflow Trigger').first().json.case_id }}</strong> by the <strong>Firm Administrator</strong>.</p><div style=\"background-color: #faf5ff; border-left: 4px solid #9333ea; border: 1px solid #e9d5ff; border-left-width: 4px; padding: 16px; margin: 18px 0; border-radius: 4px;\"><h4 style=\"margin: 0 0 10px 0; color: #7e22ce; font-size: 15px;\">📑 Administrative Waiver Executed</h4><table border=\"0\" cellpadding=\"5\" style=\"width: 100%; border-collapse: collapse; font-size: 14px;\"><tr><td style=\"width: 38%; color: #64748b;\"><strong>Case Reference ID:</strong></td><td><code style=\"font-size: 14px; font-weight: bold; color: #0f172a;\">#{{ $('Execute Workflow Trigger').first().json.case_id }}</code></td></tr><tr><td style=\"color: #64748b;\"><strong>Waiver Scope:</strong></td><td><strong>{{ ($('Execute Workflow Trigger').first().json.selected_bill && $('Execute Workflow Trigger').first().json.selected_bill.toUpperCase() !== 'ALL') ? ('Specific Bill: ' + $('Execute Workflow Trigger').first().json.selected_bill) : 'All Pending Bills for Matter' }}</strong></td></tr><tr><td style=\"color: #64748b;\"><strong>Waiver Justification:</strong></td><td><em>{{ $('Execute Workflow Trigger').first().json.closure_remarks || 'Administrative override approved by Firm Administrator' }}</em></td></tr><tr><td style=\"color: #64748b;\"><strong>Remaining Pending Bills:</strong></td><td><strong>{{ $('Fetch Invoices for Case').all().filter(i => Boolean(i.json.invoice_id) && (i.json.case_id || '').toLowerCase().trim() === $('Execute Workflow Trigger').first().json.case_id.toLowerCase().trim() && ((!($('Execute Workflow Trigger').first().json.selected_bill) || $('Execute Workflow Trigger').first().json.selected_bill.toUpperCase() === 'ALL') ? false : (i.json.invoice_id || '').toLowerCase().trim() !== $('Execute Workflow Trigger').first().json.selected_bill.toLowerCase().trim()) && (i.json.invoice_status || 'pending').toLowerCase().trim() === 'pending').length }}</strong></td></tr><tr><td style=\"color: #64748b;\"><strong>Case Directory Status:</strong></td><td><span style=\"background: #f3e8ff; color: #7e22ce; padding: 2px 8px; border-radius: 4px; font-weight: 600; text-transform: uppercase;\">{{ (!($('Execute Workflow Trigger').first().json.selected_bill) || $('Execute Workflow Trigger').first().json.selected_bill.toUpperCase() === 'ALL' || $('Fetch Invoices for Case').all().filter(i => Boolean(i.json.invoice_id) && (i.json.case_id || '').toLowerCase().trim() === $('Execute Workflow Trigger').first().json.case_id.toLowerCase().trim() && (i.json.invoice_id || '').toLowerCase().trim() !== $('Execute Workflow Trigger').first().json.selected_bill.toLowerCase().trim() && (i.json.invoice_status || 'pending').toLowerCase().trim() === 'pending').length === 0) ? 'closed' : ($('Fetch Case Directory').first().json.case_status || 'closure-blocked') }}</span></td></tr><tr><td style=\"color: #64748b;\"><strong>Processed Date:</strong></td><td><strong>{{ $now.toFormat('dd/MM/yyyy HH:mm:ss') }}</strong></td></tr></table></div><div style=\"background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 14px 16px; border-radius: 6px; margin-bottom: 18px;\"><strong style=\"color: #334155;\">Audit &amp; Governance Record:</strong><p style=\"margin: 6px 0 0 0; font-size: 13px; color: #475569; line-height: 1.5;\">This administrative override has been logged in the firm audit trail and workflow history repository for compliance verification.</p></div><div style=\"text-align: center; margin: 25px 0 15px 0;\"><a href=\"{{ $vars.PRACTICE_PORTAL_URL }}\" target=\"_blank\" style=\"background-color: #7e22ce; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;\">📱 Access Case in Legal Portal</a></div><hr style=\"border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;\"/><p style=\"font-size: 12px; color: #64748b; margin: 0; text-align: center;\">Legal Practice Management System &bull; Privileged & Confidential Legal Communication</p></div></div>",
+        "options": {}
+      },
+      "id": "cfa1ae5b-4f5e-4cce-a749-3c99934731d4",
+      "name": "Send Waiver Notification Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1712,
+        -288
+      ],
+      "webhookId": "2fe61c62-1727-45ce-adc3-5c1bf85db512",
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "sVmGKpNsTs1T3jnJ",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "wr1",
+              "name": "success",
+              "type": "boolean",
+              "value": true
+            },
+            {
+              "id": "wr2",
+              "name": "case_status",
+              "type": "string",
+              "value": "={{ (!($('Execute Workflow Trigger').first().json.selected_bill) || $('Execute Workflow Trigger').first().json.selected_bill.toUpperCase() === 'ALL' || $('Fetch Invoices for Case').all().filter(i => Boolean(i.json.invoice_id) && (i.json.case_id || '').toLowerCase().trim() === $('Execute Workflow Trigger').first().json.case_id.toLowerCase().trim() && (i.json.invoice_id || '').toLowerCase().trim() !== $('Execute Workflow Trigger').first().json.selected_bill.toLowerCase().trim() && (i.json.invoice_status || 'pending').toLowerCase().trim() === 'pending').length === 0) ? 'closed' : ($('Fetch Case Directory').first().json.case_status || 'closure-blocked') }}"
+            },
+            {
+              "id": "wr3",
+              "name": "message",
+              "type": "string",
+              "value": "=<h3>Administrative Waiver Granted</h3><p>{{ ($('Execute Workflow Trigger').first().json.selected_bill && $('Execute Workflow Trigger').first().json.selected_bill.toUpperCase() !== 'ALL') ? ('Bill <strong>' + $('Execute Workflow Trigger').first().json.selected_bill + '</strong> has been waived and written off.') : 'All pending bills for Case <strong>' + $('Execute Workflow Trigger').first().json.case_id + '</strong> have been waived.' }}</p><p><strong>Remaining Pending Bills:</strong> {{ $('Fetch Invoices for Case').all().filter(i => Boolean(i.json.invoice_id) && (i.json.case_id || '').toLowerCase().trim() === $('Execute Workflow Trigger').first().json.case_id.toLowerCase().trim() && ((!($('Execute Workflow Trigger').first().json.selected_bill) || $('Execute Workflow Trigger').first().json.selected_bill.toUpperCase() === 'ALL') ? false : (i.json.invoice_id || '').toLowerCase().trim() !== $('Execute Workflow Trigger').first().json.selected_bill.toLowerCase().trim()) && (i.json.invoice_status || 'pending').toLowerCase().trim() === 'pending').length }}</p><p><strong>Case Status:</strong> {{ (!($('Execute Workflow Trigger').first().json.selected_bill) || $('Execute Workflow Trigger').first().json.selected_bill.toUpperCase() === 'ALL' || $('Fetch Invoices for Case').all().filter(i => Boolean(i.json.invoice_id) && (i.json.case_id || '').toLowerCase().trim() === $('Execute Workflow Trigger').first().json.case_id.toLowerCase().trim() && (i.json.invoice_id || '').toLowerCase().trim() !== $('Execute Workflow Trigger').first().json.selected_bill.toLowerCase().trim() && (i.json.invoice_status || 'pending').toLowerCase().trim() === 'pending').length === 0) ? 'closed' : ($('Fetch Case Directory').first().json.case_status || 'closure-blocked') }}</p>"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0a466edc-967f-4eb8-8cde-92b6a71ae588",
+      "name": "Waiver Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1936,
+        -288
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $vars.TABLE_WORKFLOW_HISTORY || 'zLUIArHa9Po3oyoW' }}"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "case_id",
+              "condition": "ilike",
+              "keyValue": "={{ $('Execute Workflow Trigger').first().json.case_id.trim() }}"
+            },
+            {
+              "keyName": "invoice_id",
+              "condition": "ilike",
+              "keyValue": "={{ (!($('Execute Workflow Trigger').first().json.selected_bill) || $('Execute Workflow Trigger').first().json.selected_bill.toUpperCase() === 'ALL') ? '%' : $('Execute Workflow Trigger').first().json.selected_bill.trim() }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "schema": [
+            {
+              "displayName": "invoice_status",
+              "id": "invoice_status",
+              "type": "string"
+            },
+            {
+              "displayName": "decision",
+              "id": "decision",
+              "type": "string"
+            },
+            {
+              "displayName": "decision_by",
+              "id": "decision_by",
+              "type": "string"
+            },
+            {
+              "displayName": "updated_by",
+              "id": "updated_by",
+              "type": "string"
+            }
+          ],
+          "value": {
+            "decision": "Waived",
+            "decision_by": "Firm Administrator",
+            "invoice_status": "waived",
+            "updated_by": "Firm Administrator (Waiver Override)"
+          }
+        },
+        "options": {}
+      },
+      "id": "60a0de72-f53b-4720-bcd9-76d76143e169",
+      "name": "Update Waived Invoices in History",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1264,
+        -288
+      ]
+    }
+  ],
+  "pinData": {
+    "Execute Workflow Trigger": [
+      {
+        "json": {
+          "case_id": 570040,
+          "requester_role": "Firm Administrator",
+          "closure_remarks": "the case is been rejected by the firm",
+          "notify_email": "johndoe@gmail.com",
+          "action": "closure",
+          "selected_bill": 10
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Case Directory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Case Directory": {
+      "main": [
+        [
+          {
+            "node": "Is Case Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Case Found?": {
+      "main": [
+        [
+          {
+            "node": "Fetch Invoices for Case",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Case Not Found Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Invoices for Case": {
+      "main": [
+        [
+          {
+            "node": "Evaluate Case Closure Rules",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Ongoing Trial Email": {
+      "main": [
+        [
+          {
+            "node": "Disallowed Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Closure Blocked Alert": {
+      "main": [
+        [
+          {
+            "node": "Blocked Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Case Closed Confirmation": {
+      "main": [
+        [
+          {
+            "node": "Closed Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Case Active": {
+      "main": [
+        [
+          {
+            "node": "Log Audit Trail: Disallowed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Audit Trail: Disallowed": {
+      "main": [
+        [
+          {
+            "node": "Send Ongoing Trial Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Case Closure Blocked": {
+      "main": [
+        [
+          {
+            "node": "Log Audit Trail: Blocked",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Audit Trail: Blocked": {
+      "main": [
+        [
+          {
+            "node": "Send Closure Blocked Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Case Closed": {
+      "main": [
+        [
+          {
+            "node": "Log Audit Trail: Closed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Audit Trail: Closed": {
+      "main": [
+        [
+          {
+            "node": "Send Case Closed Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluate Case Closure Rules": {
+      "main": [
+        [
+          {
+            "node": "Set Case Closed (Waiver)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set Case Active",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set Case Closure Blocked",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set Case Closed",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Unhandled Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Audit Trail: Waiver": {
+      "main": [
+        [
+          {
+            "node": "Send Waiver Notification Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Waiver Notification Email": {
+      "main": [
+        [
+          {
+            "node": "Waiver Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Case Closed (Waiver)": {
+      "main": [
+        [
+          {
+            "node": "Update Waived Invoices in History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Waived Invoices in History": {
+      "main": [
+        [
+          {
+            "node": "Log Audit Trail: Waiver",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true,
+    "errorWorkflow": "Dvao8HFN2GnGuaQZ"
+  },
+  "versionId": "a6d9de42-13f4-4f7d-8980-dbadaaee6513",
+  "meta": {
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp",
+    "instanceId": "1b7f2b8bd7379ce28884aabf2215f3c90ff32a7e4c4f1088ddd7ce0532074b6f"
+  },
+  "nodeGroups": [
+    {
+      "id": "grp-case-ingestion",
+      "name": "Case Directory & Invoice Ingestion",
+      "nodeIds": [
+        "461d425e-e0bf-4bfd-b5ba-04cb7fa5be6f",
+        "16ae8076-0d9f-4866-86b0-7280a9dc1a0f",
+        "8a777bc4-980a-4b0a-b7d5-8a8b52d5468a",
+        "c3ac9670-4f1f-499b-ae26-95d3bf925925"
+      ],
+      "description": "Retrieves case directory records and historical invoices before guardrail validation."
+    },
+    {
+      "id": "0005ee29-b92d-4410-9e40-63b9dc0d3764",
+      "name": "Administrative Waiver Execution Pipeline",
+      "nodeIds": [
+        "679157dc-1d2d-4906-b3cd-3b871e6fd353",
+        "60a0de72-f53b-4720-bcd9-76d76143e169",
+        "e9f49c83-5f23-42e5-a33c-88549b80a18c",
+        "cfa1ae5b-4f5e-4cce-a749-3c99934731d4",
+        "0a466edc-967f-4eb8-8cde-92b6a71ae588"
+      ],
+      "description": "Applies administrative invoice waiver, synchronizes history and sends notifications."
+    },
+    {
+      "id": "8f64cd42-c329-48e3-a29a-2e74204c3852",
+      "name": "Ongoing Trial Active Handler",
+      "nodeIds": [
+        "f22bc36b-732c-453f-8865-63c332e1f455",
+        "a101-audit-disallowed",
+        "b7c2a73d-5de5-4635-8c76-3c81155053c6",
+        "1f623eaf-545c-494d-b091-e5de39722cd7"
+      ],
+      "description": "Maintains case active status and logs audit trail when matter remains in trial or hearings."
+    },
+    {
+      "id": "d040956e-7b75-406e-af39-3dd672482da7",
+      "name": "Closure Guardrail Blocked Pipeline",
+      "nodeIds": [
+        "d0c77413-da99-4bc8-9255-69b8a74f0f6f",
+        "a102-audit-blocked",
+        "dbcf7566-af30-429d-8115-8d570e399748",
+        "28b8102f-10dc-4623-b287-a378457bad2a"
+      ],
+      "description": "Enforces financial guardrails when pending or unapproved invoices exist."
+    },
+    {
+      "id": "f531d141-3653-4028-b61a-324b60a429a0",
+      "name": "Full Settlement & Case Closure Pipeline",
+      "nodeIds": [
+        "04656f07-e688-40cf-a936-b9b282edc5d0",
+        "a103-audit-closed",
+        "e06a8d12-69f6-4c4f-9af7-3b134885b165",
+        "aa70c597-095d-4376-92a6-972cec40ff9a"
+      ],
+      "description": "Confirms complete fee settlement and marks case officially closed with audit logging."
+    }
+  ],
+  "id": "3ZrCkLZcjXqKdpPp",
+  "tags": []
+}

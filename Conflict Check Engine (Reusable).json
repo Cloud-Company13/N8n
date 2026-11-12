@@ -1,0 +1,715 @@
+{
+  "name": "Conflict Check Engine (Reusable)",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "client_name"
+            },
+            {
+              "name": "adverse_party"
+            },
+            {
+              "name": "client_email"
+            },
+            {
+              "name": "case_id"
+            }
+          ]
+        }
+      },
+      "id": "98ee8c7f-be80-472f-8355-a3b69e513517",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -800,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "rcs-1",
+              "name": "has_conflict",
+              "type": "boolean",
+              "value": "={{ $json.has_conflict }}"
+            },
+            {
+              "id": "rcs-2",
+              "name": "conflict_status",
+              "type": "string",
+              "value": "={{ $json.conflict_status }}"
+            },
+            {
+              "id": "rcs-3",
+              "name": "conflict_type",
+              "type": "string",
+              "value": "={{ $json.conflict_type }}"
+            },
+            {
+              "id": "rcs-4",
+              "name": "conflict_details",
+              "type": "string",
+              "value": "={{ $json.conflict_details }}"
+            },
+            {
+              "id": "rcs-5",
+              "name": "matched_conflict_case_id",
+              "type": "string",
+              "value": "={{ $json.matched_conflict_case_id || '' }}"
+            },
+            {
+              "id": "rcs-6",
+              "name": "case_id",
+              "type": "string",
+              "value": "={{ $json.case_id }}"
+            },
+            {
+              "id": "rcs-7",
+              "name": "client_name",
+              "type": "string",
+              "value": "={{ $json.client_name }}"
+            },
+            {
+              "id": "rcs-8",
+              "name": "client_email",
+              "type": "string",
+              "value": "={{ $json.client_email }}"
+            },
+            {
+              "id": "rcs-9",
+              "name": "location",
+              "type": "string",
+              "value": "={{ $json.location }}"
+            },
+            {
+              "id": "rcs-10",
+              "name": "address",
+              "type": "string",
+              "value": "={{ $json.address }}"
+            },
+            {
+              "id": "rcs-11",
+              "name": "pincode",
+              "type": "string",
+              "value": "={{ $json.pincode }}"
+            },
+            {
+              "id": "rcs-12",
+              "name": "case_status",
+              "type": "string",
+              "value": "={{ $json.case_status }}"
+            },
+            {
+              "id": "rcs-13",
+              "name": "legal_proceeding_stage",
+              "type": "string",
+              "value": "={{ $json.legal_proceeding_stage }}"
+            },
+            {
+              "id": "rcs-14",
+              "name": "document_url",
+              "type": "string",
+              "value": "={{ $json.document_url || '' }}"
+            },
+            {
+              "id": "rcs-15",
+              "name": "document_title",
+              "type": "string",
+              "value": "={{ $json.document_title || '' }}"
+            },
+            {
+              "id": "rcs-16",
+              "name": "document_category",
+              "type": "string",
+              "value": "={{ $json.document_category || 'General Matter' }}"
+            },
+            {
+              "id": "rcs-17",
+              "name": "document_summary",
+              "type": "string",
+              "value": "={{ $json.document_summary || '' }}"
+            },
+            {
+              "id": "rcs-18",
+              "name": "urgency_level",
+              "type": "string",
+              "value": "={{ $json.urgency_level || 'Medium' }}"
+            },
+            {
+              "id": "rcs-19",
+              "name": "adverse_party",
+              "type": "string",
+              "value": "={{ $json.adverse_party || 'None' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d8ea977b-fc12-440a-bf41-5765aa0db00c",
+      "name": "Return Conflict Summary",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1360,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $vars.TABLE_CASE_DIRECTORY || 'PFF0bSgccDIC5E5T' }}"
+        },
+        "returnAll": true
+      },
+      "id": "e65da948-5720-4456-b422-419b0ea847d3",
+      "name": "Lookup Directory for Conflict",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -544,
+        208
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {},
+      "id": "e4fd1101-b54f-4594-bf7d-cec0ff436477",
+      "name": "Limit to Single Item",
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        -320,
+        208
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ $('Execute Workflow Trigger').first().json }}",
+        "options": {}
+      },
+      "id": "29f40c23-a21f-4900-9971-5d4e4558a62d",
+      "name": "Prepare Intake Context",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -96,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c1-adv-exists",
+              "leftValue": "={{ Boolean($json.adverse_party && $json.adverse_party.toLowerCase() !== 'none') }}",
+              "operator": {
+                "operation": "true",
+                "type": "boolean"
+              },
+              "rightValue": true
+            },
+            {
+              "id": "c1-adv-match",
+              "leftValue": "={{ Boolean($('Lookup Directory for Conflict').all().find(r => r.json.case_id && r.json.case_id.toString() !== ($json.case_id || '').toString() && r.json.client_name && (r.json.client_name.toLowerCase().includes($json.adverse_party.toLowerCase()) || $json.adverse_party.toLowerCase().includes(r.json.client_name.toLowerCase())))) }}",
+              "operator": {
+                "operation": "true",
+                "type": "boolean"
+              },
+              "rightValue": true
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          }
+        },
+        "options": {}
+      },
+      "id": "db859bc3-933a-4423-9691-187c60af1065",
+      "name": "Check Point 1: Direct Adverse Match",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        160,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f1",
+              "name": "has_conflict",
+              "type": "boolean",
+              "value": true
+            },
+            {
+              "id": "f2",
+              "name": "conflict_status",
+              "type": "string",
+              "value": "Potential Conflict Detected"
+            },
+            {
+              "id": "f3",
+              "name": "conflict_type",
+              "type": "string",
+              "value": "adverse_matches_existing_client"
+            },
+            {
+              "id": "f4",
+              "name": "conflict_details",
+              "type": "string",
+              "value": "={{ 'Adverse party \"' + $json.adverse_party + '\" matches existing client \"' + $('Lookup Directory for Conflict').all().find(r => r.json.case_id && r.json.case_id.toString() !== ($json.case_id || '').toString() && r.json.client_name && (r.json.client_name.toLowerCase().includes($json.adverse_party.toLowerCase()) || $json.adverse_party.toLowerCase().includes(r.json.client_name.toLowerCase()))).json.client_name + '\" in Case #' + $('Lookup Directory for Conflict').all().find(r => r.json.case_id && r.json.case_id.toString() !== ($json.case_id || '').toString() && r.json.client_name && (r.json.client_name.toLowerCase().includes($json.adverse_party.toLowerCase()) || $json.adverse_party.toLowerCase().includes(r.json.client_name.toLowerCase()))).json.case_id }}"
+            },
+            {
+              "id": "f5",
+              "name": "matched_conflict_case_id",
+              "type": "string",
+              "value": "={{ $('Lookup Directory for Conflict').all().find(r => r.json.case_id && r.json.case_id.toString() !== ($json.case_id || '').toString() && r.json.client_name && (r.json.client_name.toLowerCase().includes($json.adverse_party.toLowerCase()) || $json.adverse_party.toLowerCase().includes(r.json.client_name.toLowerCase()))).json.case_id.toString() }}"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "0e7e6d45-bc03-4487-b73e-7f5eb9923f66",
+      "name": "Format Direct Adverse Alert",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        464,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c2-client-len",
+              "leftValue": "={{ Boolean($json.client_name && $json.client_name.trim().length > 2) }}",
+              "operator": {
+                "operation": "true",
+                "type": "boolean"
+              },
+              "rightValue": true
+            },
+            {
+              "id": "c2-rev-match",
+              "leftValue": "={{ Boolean($('Lookup Directory for Conflict').all().find(r => r.json.case_id && r.json.case_id.toString() !== ($json.case_id || '').toString() && r.json.adverse_party && r.json.adverse_party.toLowerCase() !== 'none' && (r.json.adverse_party.toLowerCase().includes($json.client_name.toLowerCase()) || $json.client_name.toLowerCase().includes(r.json.adverse_party.toLowerCase())))) }}",
+              "operator": {
+                "operation": "true",
+                "type": "boolean"
+              },
+              "rightValue": true
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          }
+        },
+        "options": {}
+      },
+      "id": "e83cbc3d-efea-40c1-b6ae-7f4e440fe7d3",
+      "name": "Check Point 2: Reverse Conflict Match",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        464,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "r1",
+              "name": "has_conflict",
+              "type": "boolean",
+              "value": true
+            },
+            {
+              "id": "r2",
+              "name": "conflict_status",
+              "type": "string",
+              "value": "Potential Conflict Detected"
+            },
+            {
+              "id": "r3",
+              "name": "conflict_type",
+              "type": "string",
+              "value": "client_is_adverse_in_other_case"
+            },
+            {
+              "id": "r4",
+              "name": "conflict_details",
+              "type": "string",
+              "value": "={{ 'New client \"' + $json.client_name + '\" is already listed as an adverse opposing party in Case #' + $('Lookup Directory for Conflict').all().find(r => r.json.case_id && r.json.case_id.toString() !== ($json.case_id || '').toString() && r.json.adverse_party && r.json.adverse_party.toLowerCase() !== 'none' && (r.json.adverse_party.toLowerCase().includes($json.client_name.toLowerCase()) || $json.client_name.toLowerCase().includes(r.json.adverse_party.toLowerCase()))).json.case_id + ' (Client: ' + $('Lookup Directory for Conflict').all().find(r => r.json.case_id && r.json.case_id.toString() !== ($json.case_id || '').toString() && r.json.adverse_party && r.json.adverse_party.toLowerCase() !== 'none' && (r.json.adverse_party.toLowerCase().includes($json.client_name.toLowerCase()) || $json.client_name.toLowerCase().includes(r.json.adverse_party.toLowerCase()))).json.client_name + ')' }}"
+            },
+            {
+              "id": "r5",
+              "name": "matched_conflict_case_id",
+              "type": "string",
+              "value": "={{ $('Lookup Directory for Conflict').all().find(r => r.json.case_id && r.json.case_id.toString() !== ($json.case_id || '').toString() && r.json.adverse_party && r.json.adverse_party.toLowerCase() !== 'none' && (r.json.adverse_party.toLowerCase().includes($json.client_name.toLowerCase()) || $json.client_name.toLowerCase().includes(r.json.adverse_party.toLowerCase()))).json.case_id.toString() }}"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "e4e43af6-0302-4230-8832-26dc6f05056c",
+      "name": "Format Reverse Conflict Alert",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        752,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c3-has-domain",
+              "leftValue": "={{ Boolean($json.adverse_party && $json.adverse_party.includes('@')) }}",
+              "operator": {
+                "operation": "true",
+                "type": "boolean"
+              },
+              "rightValue": true
+            },
+            {
+              "id": "c3-domain-match",
+              "leftValue": "={{ Boolean($('Lookup Directory for Conflict').all().find(r => r.json.case_id && r.json.case_id.toString() !== ($json.case_id || '').toString() && r.json.case_owner_email && r.json.case_owner_email.includes('@') && $json.adverse_party.toLowerCase().includes(r.json.case_owner_email.split('@')[1].toLowerCase()))) }}",
+              "operator": {
+                "operation": "true",
+                "type": "boolean"
+              },
+              "rightValue": true
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          }
+        },
+        "options": {}
+      },
+      "id": "d61a1616-5db3-4dcf-9485-cfa636fe9eed",
+      "name": "Check Point 3: Corporate Domain Match",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        752,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d1",
+              "name": "has_conflict",
+              "type": "boolean",
+              "value": true
+            },
+            {
+              "id": "d2",
+              "name": "conflict_status",
+              "type": "string",
+              "value": "Potential Conflict Detected"
+            },
+            {
+              "id": "d3",
+              "name": "conflict_type",
+              "type": "string",
+              "value": "domain_conflict"
+            },
+            {
+              "id": "d4",
+              "name": "conflict_details",
+              "type": "string",
+              "value": "={{ 'Adverse party domain matches existing client email in Case #' + $('Lookup Directory for Conflict').all().find(r => r.json.case_id && r.json.case_id.toString() !== ($json.case_id || '').toString() && r.json.case_owner_email && r.json.case_owner_email.includes('@') && $json.adverse_party.toLowerCase().includes(r.json.case_owner_email.split('@')[1].toLowerCase())).json.case_id }}"
+            },
+            {
+              "id": "d5",
+              "name": "matched_conflict_case_id",
+              "type": "string",
+              "value": "={{ $('Lookup Directory for Conflict').all().find(r => r.json.case_id && r.json.case_id.toString() !== ($json.case_id || '').toString() && r.json.case_owner_email && r.json.case_owner_email.includes('@') && $json.adverse_party.toLowerCase().includes(r.json.case_owner_email.split('@')[1].toLowerCase())).json.case_id.toString() }}"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "cf3d5d11-0953-4c70-ab6b-7c96ec5cb840",
+      "name": "Format Domain Conflict Alert",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1056,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cl1",
+              "name": "has_conflict",
+              "type": "boolean",
+              "value": false
+            },
+            {
+              "id": "cl2",
+              "name": "conflict_status",
+              "type": "string",
+              "value": "Clear"
+            },
+            {
+              "id": "cl3",
+              "name": "conflict_type",
+              "type": "string",
+              "value": "none"
+            },
+            {
+              "id": "cl4",
+              "name": "conflict_details",
+              "type": "string",
+              "value": "No opposing party or client overlap found across directory."
+            },
+            {
+              "id": "cl5",
+              "name": "matched_conflict_case_id",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "c8d536fe-37a2-4adc-bd6e-066b127b534f",
+      "name": "Format Clear Status",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1056,
+        608
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Lookup Directory for Conflict",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Directory for Conflict": {
+      "main": [
+        [
+          {
+            "node": "Limit to Single Item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit to Single Item": {
+      "main": [
+        [
+          {
+            "node": "Prepare Intake Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Intake Context": {
+      "main": [
+        [
+          {
+            "node": "Check Point 1: Direct Adverse Match",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Point 1: Direct Adverse Match": {
+      "main": [
+        [
+          {
+            "node": "Format Direct Adverse Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check Point 2: Reverse Conflict Match",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Direct Adverse Alert": {
+      "main": [
+        [
+          {
+            "node": "Return Conflict Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Point 2: Reverse Conflict Match": {
+      "main": [
+        [
+          {
+            "node": "Format Reverse Conflict Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check Point 3: Corporate Domain Match",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Reverse Conflict Alert": {
+      "main": [
+        [
+          {
+            "node": "Return Conflict Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Point 3: Corporate Domain Match": {
+      "main": [
+        [
+          {
+            "node": "Format Domain Conflict Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Clear Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Domain Conflict Alert": {
+      "main": [
+        [
+          {
+            "node": "Return Conflict Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Clear Status": {
+      "main": [
+        [
+          {
+            "node": "Return Conflict Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "versionId": "782c83c5-8d33-44ef-9191-451d66765ed1",
+  "meta": {
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp",
+    "instanceId": "1b7f2b8bd7379ce28884aabf2215f3c90ff32a7e4c4f1088ddd7ce0532074b6f"
+  },
+  "nodeGroups": [
+    {
+      "id": "grp-directory-ingestion",
+      "name": "Case Directory Ingestion",
+      "nodeIds": [
+        "e65da948-5720-4456-b422-419b0ea847d3",
+        "e4fd1101-b54f-4594-bf7d-cec0ff436477",
+        "29f40c23-a21f-4900-9971-5d4e4558a62d"
+      ],
+      "description": "Loads case directory records and aligns the intake record for evaluation."
+    },
+    {
+      "id": "grp-conflict-matrix",
+      "name": "Multi-Factor Conflict Decision Matrix",
+      "nodeIds": [
+        "db859bc3-933a-4423-9691-187c60af1065",
+        "0e7e6d45-bc03-4487-b73e-7f5eb9923f66",
+        "e83cbc3d-efea-40c1-b6ae-7f4e440fe7d3",
+        "e4e43af6-0302-4230-8832-26dc6f05056c",
+        "d61a1616-5db3-4dcf-9485-cfa636fe9eed",
+        "cf3d5d11-0953-4c70-ab6b-7c96ec5cb840",
+        "c8d536fe-37a2-4adc-bd6e-066b127b534f",
+        "d8ea977b-fc12-440a-bf41-5765aa0db00c"
+      ],
+      "description": "Evaluates direct adverse match, reverse conflict match, and domain overlap using visual If decision nodes."
+    }
+  ],
+  "id": "L7NievjuiaXSGdP5",
+  "tags": []
+}

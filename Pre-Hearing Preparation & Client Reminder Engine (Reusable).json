@@ -1,0 +1,344 @@
+{
+  "name": "Pre-Hearing Preparation & Client Reminder Engine (Reusable)",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "target_date"
+            },
+            {
+              "name": "case_id"
+            }
+          ]
+        }
+      },
+      "id": "5a933227-f568-486e-9a55-d55a31465406",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -1200,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "res-1",
+              "name": "success",
+              "type": "boolean",
+              "value": "={{ true }}"
+            },
+            {
+              "id": "res-2",
+              "name": "case_id",
+              "type": "string",
+              "value": "={{ $('Evaluate 4-Day Window & Build Reminders').item.json.case_id }}"
+            },
+            {
+              "id": "res-3",
+              "name": "hearing_date",
+              "type": "string",
+              "value": "={{ $('Evaluate 4-Day Window & Build Reminders').item.json.hearing_date }}"
+            },
+            {
+              "id": "res-4",
+              "name": "advocate_email",
+              "type": "string",
+              "value": "={{ $('Evaluate 4-Day Window & Build Reminders').item.json.advocate_email }}"
+            },
+            {
+              "id": "res-5",
+              "name": "client_email",
+              "type": "string",
+              "value": "={{ $('Evaluate 4-Day Window & Build Reminders').item.json.client_email }}"
+            },
+            {
+              "id": "res-6",
+              "name": "message",
+              "type": "string",
+              "value": "={{ 'Pre-hearing checklist emailed to Advocate (' + $('Evaluate 4-Day Window & Build Reminders').item.json.advocate_email + ') and reminder emailed to Client (' + $('Evaluate 4-Day Window & Build Reminders').item.json.client_email + ') for hearing on ' + $('Evaluate 4-Day Window & Build Reminders').item.json.hearing_date }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ac749022-74f0-4433-9a15-8aa0fbce1877",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        368,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      },
+      "id": "1c87a0fb-7c9d-4869-8e42-610c85f84be6",
+      "name": "Daily Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1200,
+        496
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $vars.TABLE_CASE_DIRECTORY || 'PFF0bSgccDIC5E5T' }}"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "case_status",
+              "keyValue": "active"
+            }
+          ]
+        },
+        "limit": 100
+      },
+      "id": "4eb152cc-6b5c-4d33-91ee-dede7d95d7da",
+      "name": "Fetch Active Cases",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -912,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pre-Hearing Evaluation & Payload Builder\n// Supports both automated cron schedule and manual test inputs\n\nconst items = $input.all();\nlet manualTargetDate = null;\nlet manualCaseId = null;\n\ntry {\n  if ($('Execute Workflow Trigger').isExecuted) {\n    const minp = $('Execute Workflow Trigger').first().json;\n    if (minp && minp.target_date) manualTargetDate = String(minp.target_date).trim();\n    if (minp && minp.case_id) manualCaseId = String(minp.case_id).trim();\n  }\n} catch (e) {\n  // Executed from Schedule trigger\n}\n\nconst reminderDays = Number($vars.HEARING_REMINDER_LEAD_DAYS || 4);\n\nfunction parseDate(str) {\n  if (!str) return null;\n  str = String(str).trim();\n  const parts = str.includes('/') ? str.split('/') : (str.includes('-') ? str.split('-') : []);\n  if (parts.length === 3) {\n    if (parts[0].length === 4) {\n      // YYYY-MM-DD\n      const year = parseInt(parts[0], 10);\n      const month = parseInt(parts[1], 10) - 1;\n      const day = parseInt(parts[2], 10);\n      return new Date(year, month, day);\n    } else {\n      // DD/MM/YYYY\n      const day = parseInt(parts[0], 10);\n      const month = parseInt(parts[1], 10) - 1;\n      const year = parseInt(parts[2], 10);\n      return new Date(year, month, day);\n    }\n  }\n  const parsed = new Date(str);\n  return isNaN(parsed.getTime()) ? null : parsed;\n}\n\nfunction diffDays(targetDate, baseDate) {\n  const utcTarget = Date.UTC(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());\n  const utcBase = Date.UTC(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate());\n  return Math.round((utcTarget - utcBase) / (1000 * 60 * 60 * 24));\n}\n\nconst now = new Date();\nconst matchedCases = [];\n\nfor (const it of items) {\n  const c = it.json;\n  if (!c || !c.case_id) continue;\n  \n  // Must be in hearing stage and active\n  const stage = String(c.legal_proceeding_stage || '').trim().toLowerCase();\n  const status = String(c.case_status || '').trim().toLowerCase();\n  if (stage !== 'hearing' || status !== 'active') continue;\n  \n  const rawHDate = String(c.hearing_date || '').trim();\n  if (!rawHDate) continue; // Skip if no hearing date\n  \n  let isMatched = false;\n  let daysDiff = 0;\n  \n  if (manualTargetDate) {\n    // If testing for a specific date (e.g. 15/10/2026 or 09/10/2026)\n    if (rawHDate === manualTargetDate) {\n      isMatched = true;\n      daysDiff = reminderDays;\n    } else {\n      const p1 = parseDate(rawHDate);\n      const p2 = parseDate(manualTargetDate);\n      if (p1 && p2 && p1.getTime() === p2.getTime()) {\n        isMatched = true;\n        daysDiff = reminderDays;\n      }\n    }\n  } else {\n    // Automated daily cron check: check if difference is reminderDays\n    const hDateObj = parseDate(rawHDate);\n    if (hDateObj) {\n      daysDiff = diffDays(hDateObj, now);\n      if (daysDiff === reminderDays) {\n        isMatched = true;\n      }\n    }\n  }\n  \n  // Filter by case_id if provided in manual input\n  if (manualCaseId && c.case_id !== manualCaseId) {\n    isMatched = false;\n  }\n  \n  if (!isMatched) continue;\n  \n  // Assemble Clean Lawyer Checklist\n  const caseId = c.case_id;\n  const clientName = c.client_name || 'Client';\n  const clientEmail = c.case_owner_email || 'sahil.soni@trootech.com';\n  const clientLocation = c.location || 'Ahmedabad';\n  const clientAddress = c.address || 'Ahmedabad';\n  const advocateName = c.advocate_name || 'Assigned Counsel';\n  const advocateEmail = c.advocate_email || 'sahil.soni@trootech.com';\n  const courtName = c.court_name || 'Designated Court Bench';\n  const hearingTime = c.hearing_time || '10:30 AM (Standard Sitting)';\n  const adverseParty = c.adverse_party || 'None / Not Applicable';\n  const docTitle = c.document_title || 'Case Brief & Pleadings';\n  const docUrl = c.document_url || '';\n  const docDisplay = docUrl ? `<a href=\"${docUrl}\" target=\"_blank\" style=\"color: #2563eb; text-decoration: underline;\">📄 ${docTitle} (Open in Drive)</a>` : `<span>${docTitle} (Pending Vault Upload)</span>`;\n  \n  const courtLocation = `${courtName}${clientLocation ? ' (' + clientLocation + ')' : ''}`;\n  \n  const lawyerEmailSubject = `[PRE-HEARING ACTION CHECKLIST] Upcoming Court Hearing for Case #${caseId} (${clientName})`;\n  const lawyerEmailBody = `\n<div style=\"font-family: Arial, sans-serif; line-height: 1.6; color: #1e293b; max-width: 650px; margin: 0 auto; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;\">\n  <div style=\"background-color: #1e3a8a; color: #ffffff; padding: 20px 24px;\">\n    <h2 style=\"margin: 0; font-size: 20px; font-weight: 700;\">⚖️ Pre-Hearing Action Checklist (Listing in ${reminderDays} Days)</h2>\n    <p style=\"margin: 6px 0 0 0; opacity: 0.9; font-size: 14px;\">Case Reference: <strong>#${caseId}</strong> | ${clientName}</p>\n  </div>\n  <div style=\"padding: 24px;\">\n    <p>Dear <strong>Adv. ${advocateName}</strong>,</p>\n    <p>This matter is scheduled for hearing before the bench in <strong>${reminderDays} days</strong> (${rawHDate}). Please review the pre-hearing briefing details below:</p>\n    \n    <div style=\"background-color: #f8fafc; border-left: 4px solid #1e3a8a; padding: 16px; margin: 18px 0; border-radius: 4px;\">\n      <table border=\"0\" cellpadding=\"6\" style=\"width: 100%; border-collapse: collapse; font-size: 14px;\">\n        <tr><td style=\"width: 35%; color: #64748b;\"><strong>1. Court Name:</strong></td><td><strong style=\"color: #0f172a;\">🏛️ ${courtName}</strong></td></tr>\n        <tr><td style=\"color: #64748b;\"><strong>2. Hearing Time:</strong></td><td><strong style=\"color: #1e3a8a;\">⏰ ${hearingTime}</strong></td></tr>\n        <tr><td style=\"color: #64748b;\"><strong>3. Legal Stage:</strong></td><td><span style=\"background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 4px; font-weight: bold;\">${c.legal_proceeding_stage}</span></td></tr>\n        <tr><td style=\"color: #64748b;\"><strong>4. Document Vault:</strong></td><td>${docDisplay}</td></tr>\n        <tr><td style=\"color: #64748b;\"><strong>5. Client Details:</strong></td><td><strong style=\"color: #0f172a;\">${clientName}</strong></td></tr>\n        <tr><td style=\"color: #64748b;\"><strong>6. Adverse Party Name:</strong></td><td><strong style=\"color: #b91c1c;\">⚠️ ${adverseParty}</strong></td></tr>\n        <tr><td style=\"color: #64748b;\"><strong>7. Client Contact Info:</strong></td><td>Email: <a href=\"mailto:${clientEmail}\">${clientEmail}</a><br/>Location: ${clientLocation}<br/>Address: ${clientAddress}</td></tr>\n      </table>\n    </div>\n\n    <div style=\"background-color: #f1f5f9; padding: 14px 18px; border-radius: 6px; margin-top: 18px;\">\n      <strong style=\"color: #334155;\">Litigation Action Items:</strong>\n      <ul style=\"margin: 8px 0 0 0; padding-left: 20px; color: #475569; font-size: 13px;\">\n        <li>Verify Cause List & Courtroom/Bench assignment for ${rawHDate}.</li>\n        <li>Inspect physical document brief and confirm Vakalatnama on record.</li>\n        <li>Conduct pre-hearing briefing call with client (${clientName}).</li>\n      </ul>\n    </div>\n\n    <hr style=\"border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;\"/>\n    <p style=\"font-size: 12px; color: #64748b; margin: 0; text-align: center;\">Legal Practice Management System &bull; Privileged & Confidential Litigation Brief</p>\n  </div>\n</div>\n`.trim();\n\n  const clientEmailSubject = `Upcoming Court Hearing Notice — Case #${caseId} (${clientName})`;\n  const clientEmailBody = `\n<div style=\"font-family: Arial, sans-serif; line-height: 1.6; color: #1e293b; max-width: 600px; margin: 0 auto; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;\">\n  <div style=\"background-color: #0284c7; color: #ffffff; padding: 20px 24px;\">\n    <h2 style=\"margin: 0; font-size: 20px; font-weight: 700;\">📅 Upcoming Court Hearing Reminder</h2>\n    <p style=\"margin: 6px 0 0 0; opacity: 0.9; font-size: 14px;\">Case Reference: <strong>#${caseId}</strong></p>\n  </div>\n  <div style=\"padding: 24px;\">\n    <p>Dear <strong>${clientName}</strong>,</p>\n    <p>This is a courtesy reminder that your legal matter has an upcoming court hearing listed in <strong>${reminderDays} days</strong>:</p>\n    \n    <div style=\"background-color: #f0f9ff; border-left: 4px solid #0284c7; padding: 16px; margin: 18px 0; border-radius: 4px;\">\n      <table border=\"0\" cellpadding=\"6\" style=\"width: 100%; border-collapse: collapse; font-size: 14px;\">\n        <tr><td style=\"width: 35%; color: #64748b;\"><strong>1. Court Date:</strong></td><td><strong style=\"color: #0284c7; font-size: 15px;\">📅 ${rawHDate}</strong></td></tr>\n        <tr><td style=\"color: #64748b;\"><strong>2. Hearing Time:</strong></td><td><strong style=\"color: #0284c7; font-size: 15px;\">⏰ ${hearingTime}</strong></td></tr>\n        <tr><td style=\"color: #64748b;\"><strong>3. Location:</strong></td><td><strong style=\"color: #0f172a;\">📍 ${courtLocation}</strong></td></tr>\n        <tr><td style=\"color: #64748b;\"><strong>4. Assigned Advocate:</strong></td><td><strong style=\"color: #0f172a;\">Adv. ${advocateName}</strong><br/><span style=\"color: #64748b; font-size: 13px;\">Email: ${advocateEmail}</span></td></tr>\n      </table>\n    </div>\n\n    <p style=\"font-size: 14px; color: #475569;\">Your assigned advocate is actively preparing your case brief and records. If your attendance is required or if our team needs any additional details, your counsel will contact you directly.</p>\n\n    <hr style=\"border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;\"/>\n    <p style=\"font-size: 12px; color: #94a3b8; margin: 0; text-align: center;\">Legal Practice Management System &bull; Privileged & Confidential Notice</p>\n  </div>\n</div>\n`.trim();\n\n  matchedCases.push({\n    json: {\n      case_id: caseId,\n      client_name: clientName,\n      client_email: clientEmail,\n      client_location: clientLocation,\n      client_address: clientAddress,\n      advocate_name: advocateName,\n      advocate_email: advocateEmail,\n      court_name: courtName,\n      hearing_date: rawHDate,\n      hearing_time: hearingTime,\n      legal_proceeding_stage: c.legal_proceeding_stage,\n      adverse_party: adverseParty,\n      document_title: docTitle,\n      document_url: docUrl,\n      lawyer_email_subject: lawyerEmailSubject,\n      lawyer_email_body: lawyerEmailBody,\n      client_email_subject: clientEmailSubject,\n      client_email_body: clientEmailBody,\n      matched_at: now.toISOString()\n    }\n  });\n}\n\nreturn matchedCases;\n"
+      },
+      "id": "5322c4b7-2693-41d0-b434-fc23eedb371a",
+      "name": "Evaluate 4-Day Window & Build Reminders",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -688,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.advocate_email || 'sahil.soni@trootech.com' }}",
+        "subject": "={{ $json.lawyer_email_subject }}",
+        "message": "={{ $json.lawyer_email_body }}",
+        "options": {
+          "ccList": "={{ $vars.FIRM_ADMIN_EMAIL }}"
+        }
+      },
+      "id": "795042d1-02d6-4b20-82eb-e2918b977d6c",
+      "name": "Send Lawyer Action Checklist",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -352,
+        400
+      ],
+      "webhookId": "983ee464-c1b6-4ce7-a76e-230ed47aa083",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "sVmGKpNsTs1T3jnJ",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Evaluate 4-Day Window & Build Reminders').item.json.client_email || 'sahil.soni@trootech.com' }}",
+        "subject": "={{ $('Evaluate 4-Day Window & Build Reminders').item.json.client_email_subject }}",
+        "message": "={{ $('Evaluate 4-Day Window & Build Reminders').item.json.client_email_body }}",
+        "options": {}
+      },
+      "id": "bd7a5397-b791-44e5-8f30-e0be7ccac2a1",
+      "name": "Send Client Hearing Reminder",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -128,
+        400
+      ],
+      "webhookId": "718c4ac3-283e-4836-a943-8a23e885fcc7",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "sVmGKpNsTs1T3jnJ",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $vars.TABLE_WORKFLOW_HISTORY || 'zLUIArHa9Po3oyoW' }}"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "case_id": "={{ $('Evaluate 4-Day Window & Build Reminders').item.json.case_id }}",
+            "invoice_id": "={{ 'HEARING-' + $('Evaluate 4-Day Window & Build Reminders').item.json.case_id }}",
+            "decision": "pre_hearing_notification_sent",
+            "decision_by": "Automated Schedule",
+            "final_status": "notifications_dispatched",
+            "outcome_status": "={{ 'Advocate: ' + $('Evaluate 4-Day Window & Build Reminders').item.json.advocate_email + ' | Client: ' + $('Evaluate 4-Day Window & Build Reminders').item.json.client_email + ' | Hearing: ' + $('Evaluate 4-Day Window & Build Reminders').item.json.hearing_date + ' at ' + $('Evaluate 4-Day Window & Build Reminders').item.json.hearing_time }}",
+            "requester_name": "={{ $('Evaluate 4-Day Window & Build Reminders').item.json.client_name }}",
+            "requester_role": "system",
+            "updated_by": "pre-hearing-engine"
+          }
+        },
+        "options": {}
+      },
+      "id": "0d8ad74b-8421-416d-b6bf-6c1a3b109254",
+      "name": "Log Notification to History",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        144,
+        400
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Active Cases",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Active Cases",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Active Cases": {
+      "main": [
+        [
+          {
+            "node": "Evaluate 4-Day Window & Build Reminders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluate 4-Day Window & Build Reminders": {
+      "main": [
+        [
+          {
+            "node": "Send Lawyer Action Checklist",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Lawyer Action Checklist": {
+      "main": [
+        [
+          {
+            "node": "Send Client Hearing Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Client Hearing Reminder": {
+      "main": [
+        [
+          {
+            "node": "Log Notification to History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Notification to History": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true,
+    "errorWorkflow": "Dvao8HFN2GnGuaQZ"
+  },
+  "versionId": "cf84b9bf-2f7f-4e7e-b5bc-75b2250223f4",
+  "meta": {
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp",
+    "instanceId": "1b7f2b8bd7379ce28884aabf2215f3c90ff32a7e4c4f1088ddd7ce0532074b6f"
+  },
+  "nodeGroups": [
+    {
+      "id": "62d451e5-2a29-48c1-933f-f17705d79363",
+      "name": "Case Intake & 4-Day Window Evaluation",
+      "nodeIds": [
+        "4eb152cc-6b5c-4d33-91ee-dede7d95d7da",
+        "5322c4b7-2693-41d0-b434-fc23eedb371a"
+      ],
+      "description": "Pulls active cases and evaluates if court listing is in 4 days."
+    },
+    {
+      "id": "eadde8c7-c6f8-40be-99a7-668b78f908fb",
+      "name": "Litigation Checklist, Client Reminder & History Pipeline",
+      "nodeIds": [
+        "795042d1-02d6-4b20-82eb-e2918b977d6c",
+        "bd7a5397-b791-44e5-8f30-e0be7ccac2a1",
+        "0d8ad74b-8421-416d-b6bf-6c1a3b109254",
+        "ac749022-74f0-4433-9a15-8aa0fbce1877"
+      ],
+      "description": "Emails action checklist to lead counsel, dispatches court reminder to client, logs audit history, and formats response payload."
+    }
+  ],
+  "id": "2LeRoz8mGEkiMhuj",
+  "tags": []
+}

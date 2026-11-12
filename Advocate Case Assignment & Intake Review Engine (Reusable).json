@@ -1,0 +1,1402 @@
+{
+  "name": "Advocate Case Assignment & Intake Review Engine (Reusable)",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "case_id"
+            },
+            {
+              "name": "action"
+            },
+            {
+              "name": "legal_proceeding_stage"
+            },
+            {
+              "name": "advocate_id"
+            },
+            {
+              "name": "advocate_name"
+            },
+            {
+              "name": "advocate_email"
+            },
+            {
+              "name": "hearing_date"
+            },
+            {
+              "name": "hearing_time"
+            },
+            {
+              "name": "court_name"
+            },
+            {
+              "name": "milestone_remarks"
+            },
+            {
+              "name": "send_milestone_email"
+            },
+            {
+              "name": "decline_reason"
+            },
+            {
+              "name": "pending_invoice_id"
+            },
+            {
+              "name": "invoice_amount"
+            },
+            {
+              "name": "invoice_payment_status"
+            },
+            {
+              "name": "requester_role"
+            },
+            {
+              "name": "has_invoice_changes"
+            }
+          ]
+        }
+      },
+      "id": "4b218c05-d1a9-45d5-9b1e-8a9505e6cf9a",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -1600,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fr-suc",
+              "name": "success",
+              "type": "boolean",
+              "value": "={{ true }}"
+            },
+            {
+              "id": "fr-cid",
+              "name": "case_id",
+              "type": "string",
+              "value": "={{ $('Format Review Parameters').first().json.case_id }}"
+            },
+            {
+              "id": "fr-cnm",
+              "name": "client_name",
+              "type": "string",
+              "value": "={{ $('Format Review Parameters').first().json.client_name }}"
+            },
+            {
+              "id": "fr-cem",
+              "name": "client_email",
+              "type": "string",
+              "value": "={{ $('Format Review Parameters').first().json.client_email }}"
+            },
+            {
+              "id": "fr-cst",
+              "name": "case_status",
+              "type": "string",
+              "value": "={{ $('Format Review Parameters').first().json.case_status }}"
+            },
+            {
+              "id": "fr-stg",
+              "name": "legal_proceeding_stage",
+              "type": "string",
+              "value": "={{ $('Format Review Parameters').first().json.legal_proceeding_stage }}"
+            },
+            {
+              "id": "fr-anm",
+              "name": "advocate_name",
+              "type": "string",
+              "value": "={{ $('Format Review Parameters').first().json.advocate_name }}"
+            },
+            {
+              "id": "fr-dec",
+              "name": "is_declined",
+              "type": "boolean",
+              "value": "={{ $('Format Review Parameters').first().json.is_declined }}"
+            },
+            {
+              "id": "fr-sml",
+              "name": "send_milestone_email",
+              "type": "string",
+              "value": "={{ $('Format Review Parameters').first().json.send_milestone_email }}"
+            },
+            {
+              "id": "fr-eng",
+              "name": "engagement_url",
+              "type": "string",
+              "value": "={{ $('Dispatch Engagement Document').isExecuted ? $('Dispatch Engagement Document').first().json.document_url : $('Format Review Parameters').first().json.existing_engagement_url }}"
+            },
+            {
+              "id": "fr-msg",
+              "name": "message",
+              "type": "string",
+              "value": "={{ (() => { const p = $('Format Review Parameters').first().json; const hasProc = Boolean(p.has_proceeding_changes); const hasInv = Boolean(p.has_invoice_changes); const isDeclined = Boolean(p.is_declined); let title = ''; let details = ''; if (isDeclined) { title = '🚫 Matter Declined (Conflict of Interest)'; details = '<p style=\"color: #991b1b;\">This matter has been formally declined due to an identified conflict of interest with existing firm records.</p>'; } else if (hasProc && hasInv) { title = 'Case Proceeding & Invoice Updated Successfully'; details = '<p>Updated Legal Proceeding Stage: <strong>' + p.legal_proceeding_stage + '</strong></p><p>Assigned Advocate: <strong>' + (p.advocate_name || 'Not Assigned') + '</strong></p><p>Invoice <strong>' + p.pending_invoice_id + '</strong> payment status updated to <strong style=\"color: #15803d;\">' + p.invoice_payment_status.toUpperCase() + '</strong> (Amount: ₹' + Number(p.invoice_amount || 0).toLocaleString('en-IN') + ').</p>'; } else if (hasProc) { title = 'Case & Milestone Updated Successfully'; details = '<p>Updated Legal Proceeding Stage: <strong>' + p.legal_proceeding_stage + '</strong></p><p>Assigned Advocate: <strong>' + (p.advocate_name || 'Not Assigned') + '</strong></p><p>Milestone notification status: <strong>' + (p.send_milestone_email === 'Yes' ? 'Dispatched via Gmail & recorded in audit history' : 'Skipped as requested') + '</strong>.</p>'; } else if (hasInv) { title = 'Invoice Record Updated Successfully'; details = '<p>Invoice <strong>' + p.pending_invoice_id + '</strong> payment status updated to <strong style=\"color: #15803d;\">' + p.invoice_payment_status.toUpperCase() + '</strong> (Amount: ₹' + Number(p.invoice_amount || 0).toLocaleString('en-IN') + ').</p><p>Financial ledger notice dispatched to Administrator and Client.</p>'; } else { title = 'Case Details Updated Successfully'; details = '<p>Case record parameters and schedule details were verified and saved in the case directory.</p>'; } let engBlock = ''; if ($('Dispatch Engagement Document').isExecuted && $('Dispatch Engagement Document').first().json.document_url) { engBlock = '<div style=\"margin-top: 15px; padding: 12px; background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px;\"><p style=\"margin: 0 0 6px 0; font-weight: 600; color: #166534;\">📄 Engagement Agreement Generated & Emailed to Client</p><p style=\"margin: 0;\"><a href=\"' + $('Dispatch Engagement Document').first().json.document_url + '\\\" target=\"_blank\" style=\"color: #2563eb; font-weight: 500; text-decoration: underline;\">Open Engagement Agreement in Google Drive &rarr;</a></p></div>'; } return '<h3>' + title + '</h3><p>Case Reference: <strong>' + p.case_id + '</strong></p><p>Client: <strong>' + p.client_name + '</strong> (' + p.client_email + ')</p><p>Case Status: <strong style=\"color: ' + (isDeclined ? '#dc2626' : '#16a34a') + ';\">' + p.case_status.toUpperCase() + '</strong></p>' + details + engBlock; })() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "94ee6b4c-69f7-45e6-8cd5-4cde63bc4aac",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        960,
+        48
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $vars.TABLE_CASE_DIRECTORY || 'PFF0bSgccDIC5E5T' }}"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "case_id",
+              "condition": "ilike",
+              "keyValue": "={{ $('Execute Workflow Trigger').item.json.case_id }}"
+            }
+          ]
+        },
+        "limit": 1
+      },
+      "id": "ecee5230-187f-43a9-9e75-e635f3ec4437",
+      "name": "Fetch Case Directory",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -1312,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "p-cid",
+              "name": "case_id",
+              "type": "string",
+              "value": "={{ $('Execute Workflow Trigger').item.json.case_id }}"
+            },
+            {
+              "id": "p-dec",
+              "name": "is_declined",
+              "type": "boolean",
+              "value": "={{ Boolean($('Execute Workflow Trigger').item.json.action === 'decline' || $('Execute Workflow Trigger').item.json.decline_reason) }}"
+            },
+            {
+              "id": "p-ini",
+              "name": "is_initial_assignment",
+              "type": "boolean",
+              "value": "={{ Boolean($('Execute Workflow Trigger').item.json.action === 'initial_assignment' || $('Execute Workflow Trigger').item.json.action === 'decline' || $json.case_status === 'pending_onboarding') }}"
+            },
+            {
+              "id": "p-cnm",
+              "name": "client_name",
+              "type": "string",
+              "value": "={{ $json.client_name || 'Client' }}"
+            },
+            {
+              "id": "p-cem",
+              "name": "client_email",
+              "type": "string",
+              "value": "={{ $json.case_owner_email || '' }}"
+            },
+            {
+              "id": "p-stg",
+              "name": "legal_proceeding_stage",
+              "type": "string",
+              "value": "={{ Boolean($('Execute Workflow Trigger').item.json.action === 'decline' || $('Execute Workflow Trigger').item.json.decline_reason) ? 'declined' : ($('Execute Workflow Trigger').item.json.legal_proceeding_stage || $json.legal_proceeding_stage || 'paper filed') }}"
+            },
+            {
+              "id": "p-cst",
+              "name": "case_status",
+              "type": "string",
+              "value": "={{ Boolean($('Execute Workflow Trigger').item.json.action === 'decline' || $('Execute Workflow Trigger').item.json.decline_reason) ? 'declined' : (($('Execute Workflow Trigger').item.json.legal_proceeding_stage === 'final judgment') ? 'completed' : 'active') }}"
+            },
+            {
+              "id": "p-anm",
+              "name": "advocate_name",
+              "type": "string",
+              "value": "={{ Boolean($('Execute Workflow Trigger').item.json.action === 'decline' || $('Execute Workflow Trigger').item.json.decline_reason) ? '' : (($('Execute Workflow Trigger').item.json.advocate_name || $json.advocate_name || '').toString().trim()) }}"
+            },
+            {
+              "id": "p-aid",
+              "name": "advocate_id",
+              "type": "string",
+              "value": "={{ Boolean($('Execute Workflow Trigger').item.json.action === 'decline' || $('Execute Workflow Trigger').item.json.decline_reason) ? '' : (($('Execute Workflow Trigger').item.json.advocate_id || $json.advocate_id || '').toString().trim()) }}"
+            },
+            {
+              "id": "p-aem",
+              "name": "advocate_email",
+              "type": "string",
+              "value": "={{ Boolean($('Execute Workflow Trigger').item.json.action === 'decline' || $('Execute Workflow Trigger').item.json.decline_reason) ? '' : (($('Execute Workflow Trigger').item.json.advocate_email || $json.advocate_email || '').toString().trim()) }}"
+            },
+            {
+              "id": "p-crt",
+              "name": "court_name",
+              "type": "string",
+              "value": "={{ ($('Execute Workflow Trigger').item.json.court_name || $json.court_name || '').toString().trim() }}"
+            },
+            {
+              "id": "p-hdt",
+              "name": "hearing_date",
+              "type": "string",
+              "value": "={{ ($('Execute Workflow Trigger').item.json.hearing_date || $json.hearing_date || '').toString().trim() }}"
+            },
+            {
+              "id": "p-htm",
+              "name": "hearing_time",
+              "type": "string",
+              "value": "={{ ($('Execute Workflow Trigger').item.json.hearing_time || $json.hearing_time || '').toString().trim() }}"
+            },
+            {
+              "id": "p-rem",
+              "name": "milestone_remarks",
+              "type": "string",
+              "value": "={{ Boolean($('Execute Workflow Trigger').item.json.action === 'decline' || $('Execute Workflow Trigger').item.json.decline_reason) ? ('Matter declined by Firm Administrator: ' + ($('Execute Workflow Trigger').item.json.decline_reason || $json.conflict_details || 'Conflict of interest')) : (($('Execute Workflow Trigger').item.json.milestone_remarks || '').toString().trim()) }}"
+            },
+            {
+              "id": "p-sml",
+              "name": "send_milestone_email",
+              "type": "string",
+              "value": "={{ Boolean($('Execute Workflow Trigger').item.json.action === 'decline' || $('Execute Workflow Trigger').item.json.decline_reason) ? 'No' : ($('Execute Workflow Trigger').item.json.send_milestone_email || 'Yes') }}"
+            },
+            {
+              "id": "p-not",
+              "name": "notes",
+              "type": "string",
+              "value": "={{ Boolean($('Execute Workflow Trigger').item.json.action === 'decline' || $('Execute Workflow Trigger').item.json.decline_reason) ? ('DECLINED: Matter declined by Firm Administrator: ' + ($('Execute Workflow Trigger').item.json.decline_reason || $json.conflict_details || 'Conflict of interest')) : ($json.notes || '') }}"
+            },
+            {
+              "id": "p-pid",
+              "name": "pending_invoice_id",
+              "type": "string",
+              "value": "={{ ($('Execute Workflow Trigger').item.json.pending_invoice_id || '').toString().trim() }}"
+            },
+            {
+              "id": "p-amt",
+              "name": "invoice_amount",
+              "type": "string",
+              "value": "={{ $('Execute Workflow Trigger').item.json.invoice_amount }}"
+            },
+            {
+              "id": "p-ips",
+              "name": "invoice_payment_status",
+              "type": "string",
+              "value": "={{ $('Execute Workflow Trigger').item.json.invoice_payment_status || 'pending' }}"
+            },
+            {
+              "id": "p-rl",
+              "name": "requester_role",
+              "type": "string",
+              "value": "={{ $('Execute Workflow Trigger').item.json.requester_role || 'Firm Administrator' }}"
+            },
+            {
+              "id": "p-eng",
+              "name": "existing_engagement_url",
+              "type": "string",
+              "value": "={{ $json.engagement_url || '' }}"
+            },
+            {
+              "id": "p-dtl",
+              "name": "document_title",
+              "type": "string",
+              "value": "={{ $json.document_title || '' }}"
+            },
+            {
+              "id": "p-cat",
+              "name": "document_category",
+              "type": "string",
+              "value": "={{ $json.document_category || 'General Legal Practice' }}"
+            },
+            {
+              "id": "p-adr",
+              "name": "client_address",
+              "type": "string",
+              "value": "={{ $json.address || 'Ahmedabad' }}"
+            },
+            {
+              "id": "p-loc",
+              "name": "client_location",
+              "type": "string",
+              "value": "={{ $json.location || 'Gujarat' }}"
+            },
+            {
+              "id": "p-pin",
+              "name": "client_pincode",
+              "type": "string",
+              "value": "={{ $json.pincode || '380001' }}"
+            },
+            {
+              "id": "p-adv",
+              "name": "adverse_party",
+              "type": "string",
+              "value": "={{ $json.adverse_party || 'None / Not Applicable' }}"
+            },
+            {
+              "id": "p-cnf",
+              "name": "conflict_status",
+              "type": "string",
+              "value": "={{ $json.conflict_status || 'Clear' }}"
+            },
+            {
+              "id": "p-urg",
+              "name": "urgency_level",
+              "type": "string",
+              "value": "={{ ($('Execute Workflow Trigger').item.json.urgency_level || $json.urgency_level || 'Medium').toString().trim() }}"
+            },
+            {
+              "id": "p-init-adv",
+              "name": "is_initial_advocate_assignment",
+              "type": "boolean",
+              "value": "={{ Boolean(!Boolean($('Fetch Case Directory').first().json.advocate_email) || $('Execute Workflow Trigger').item.json.action === 'initial_assignment' || ($('Execute Workflow Trigger').item.json.advocate_email && $('Execute Workflow Trigger').item.json.advocate_email.toLowerCase().trim() !== ($('Fetch Case Directory').first().json.advocate_email || '').toLowerCase().trim())) }}"
+            },
+            {
+              "id": "p-has-proc-chg",
+              "name": "has_proceeding_changes",
+              "type": "boolean",
+              "value": "={{ (() => { const existing = $('Fetch Case Directory').first().json || {}; const trig = $('Execute Workflow Trigger').first().json || {}; const isDeclined = Boolean(trig.action === 'decline' || trig.decline_reason); const isInitial = Boolean(trig.action === 'initial_assignment' || trig.action === 'decline' || existing.case_status === 'pending_onboarding'); if (isInitial || isDeclined) return true; const normalize = (v) => (v || '').toString().trim().toLowerCase(); const stageChanged = Boolean(trig.legal_proceeding_stage && normalize(trig.legal_proceeding_stage) !== normalize(existing.legal_proceeding_stage)); const advocateChanged = Boolean(trig.advocate_email && normalize(trig.advocate_email) !== normalize(existing.advocate_email)); const courtChanged = Boolean(trig.court_name && normalize(trig.court_name) !== normalize(existing.court_name)); const hearingDateChanged = Boolean(trig.hearing_date && (trig.hearing_date || '').toString().trim() !== (existing.hearing_date || '').toString().trim()); const hearingTimeChanged = Boolean(trig.hearing_time && normalize(trig.hearing_time) !== normalize(existing.hearing_time)); const remarksEntered = Boolean(trig.milestone_remarks && normalize(trig.milestone_remarks) !== ''); return stageChanged || advocateChanged || courtChanged || hearingDateChanged || hearingTimeChanged || remarksEntered; })() }}"
+            },
+            {
+              "id": "p-has-inv-chg",
+              "name": "has_invoice_changes",
+              "type": "boolean",
+              "value": "={{ Boolean($('Execute Workflow Trigger').item.json.has_invoice_changes === true || $('Execute Workflow Trigger').item.json.has_invoice_changes === 'true') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e9640e58-1acd-439b-a443-69aac94f3a88",
+      "name": "Format Review Parameters",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1088,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c-gen-eng",
+              "leftValue": "={{ !$json.is_declined && $json.is_initial_assignment && !Boolean($json.existing_engagement_url) }}",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              },
+              "rightValue": true
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          }
+        },
+        "options": {}
+      },
+      "id": "60912981-f502-4ded-b118-616b3c896c5e",
+      "name": "Should Generate Engagement?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -864,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "8eIHj8Skzo1jLLVW"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "adverse_party": "={{ $('Format Review Parameters').first().json.adverse_party }}",
+            "advocate_email": "={{ $('Format Review Parameters').first().json.advocate_email || 'counsel@legalspace.ai' }}",
+            "advocate_id": "={{ $('Format Review Parameters').first().json.advocate_id || 'ADV-LEGALSPACE' }}",
+            "advocate_name": "={{ $('Format Review Parameters').first().json.advocate_name || 'Assigned Counsel' }}",
+            "case_id": "={{ $('Format Review Parameters').first().json.case_id }}",
+            "category": "={{ $('Format Review Parameters').first().json.document_category }}",
+            "client_address": "={{ $('Format Review Parameters').first().json.client_address }}",
+            "client_email": "={{ $('Format Review Parameters').first().json.client_email }}",
+            "client_location": "={{ $('Format Review Parameters').first().json.client_location }}",
+            "client_name": "={{ $('Format Review Parameters').first().json.client_name }}",
+            "client_pincode": "={{ $('Format Review Parameters').first().json.client_pincode }}",
+            "conflict_status": "={{ $('Format Review Parameters').first().json.conflict_status }}",
+            "document_type": "engagement",
+            "matter_title": "={{ $('Format Review Parameters').first().json.document_title || ('Legal Representation - Matter ' + $('Format Review Parameters').first().json.case_id) }}",
+            "stage": "={{ $('Format Review Parameters').first().json.legal_proceeding_stage }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "196fc7d9-5ad8-4d2a-bc39-6783bde67d42",
+      "name": "Dispatch Engagement Document",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        -640,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $vars.TABLE_CASE_DIRECTORY || 'PFF0bSgccDIC5E5T' }}"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "case_id",
+              "condition": "ilike",
+              "keyValue": "={{ $('Format Review Parameters').first().json.case_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "advocate_email": "={{ $('Format Review Parameters').first().json.advocate_email }}",
+            "advocate_id": "={{ $('Format Review Parameters').first().json.advocate_id }}",
+            "advocate_name": "={{ $('Format Review Parameters').first().json.advocate_name }}",
+            "case_status": "={{ $('Format Review Parameters').first().json.case_status }}",
+            "court_name": "={{ $('Format Review Parameters').first().json.court_name }}",
+            "engagement_url": "={{ $('Dispatch Engagement Document').isExecuted ? $('Dispatch Engagement Document').first().json.document_url : $('Format Review Parameters').first().json.existing_engagement_url }}",
+            "hearing_date": "={{ $('Format Review Parameters').first().json.hearing_date }}",
+            "hearing_time": "={{ $('Format Review Parameters').first().json.hearing_time }}",
+            "legal_proceeding_stage": "={{ $('Format Review Parameters').first().json.legal_proceeding_stage }}",
+            "notes": "={{ $('Format Review Parameters').first().json.notes }}",
+            "urgency_level": "={{ $('Format Review Parameters').first().json.urgency_level }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "case_id",
+              "displayName": "case_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "case_owner_email",
+              "displayName": "case_owner_email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "firm_admin_email",
+              "displayName": "firm_admin_email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "legal_proceeding_stage",
+              "displayName": "legal_proceeding_stage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "case_status",
+              "displayName": "case_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "client_name",
+              "displayName": "client_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "advocate_id",
+              "displayName": "advocate_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "advocate_name",
+              "displayName": "advocate_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "advocate_email",
+              "displayName": "advocate_email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "court_name",
+              "displayName": "court_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "hearing_date",
+              "displayName": "hearing_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "hearing_time",
+              "displayName": "hearing_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "location",
+              "displayName": "location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "address",
+              "displayName": "address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "pincode",
+              "displayName": "pincode",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "document_url",
+              "displayName": "document_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "document_title",
+              "displayName": "document_title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "document_category",
+              "displayName": "document_category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "document_summary",
+              "displayName": "document_summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "urgency_level",
+              "displayName": "urgency_level",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "adverse_party",
+              "displayName": "adverse_party",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "conflict_status",
+              "displayName": "conflict_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "conflict_details",
+              "displayName": "conflict_details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "engagement_url",
+              "displayName": "engagement_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "jotter_url",
+              "displayName": "jotter_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "cb150bf4-7bbd-4654-93d3-b2f2271ed790",
+      "name": "Update Case Directory Record",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -416,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c-snd-ms",
+              "leftValue": "={{ ($('Format Review Parameters').first().json.send_milestone_email || 'Yes').toString().toLowerCase().trim() }}",
+              "operator": {
+                "operation": "equals",
+                "type": "string"
+              },
+              "rightValue": "yes"
+            },
+            {
+              "id": "c-has-proc-change",
+              "leftValue": "={{ $('Format Review Parameters').first().json.has_proceeding_changes }}",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              },
+              "rightValue": true
+            }
+          ],
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          }
+        },
+        "options": {}
+      },
+      "id": "1b2ef252-2e8c-4f32-af1c-32bfece8f520",
+      "name": "Should Send Milestone Email?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        112,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "p0eO43HcBTuB8SaX",
+          "__rl\"": true
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "advocate_email": "={{ $('Format Review Parameters').first().json.advocate_email }}",
+            "advocate_id": "={{ $('Format Review Parameters').first().json.advocate_id }}",
+            "advocate_name": "={{ $('Format Review Parameters').first().json.advocate_name }}",
+            "case_id": "={{ $('Format Review Parameters').first().json.case_id }}",
+            "client_email": "={{ $('Format Review Parameters').first().json.client_email }}",
+            "client_name": "={{ $('Format Review Parameters').first().json.client_name }}",
+            "court_name": "={{ $('Format Review Parameters').first().json.court_name }}",
+            "custom_remarks": "={{ $('Format Review Parameters').first().json.milestone_remarks }}",
+            "hearing_date": "={{ $('Format Review Parameters').first().json.hearing_date }}",
+            "hearing_time": "={{ $('Format Review Parameters').first().json.hearing_time }}",
+            "invoice_amount": "={{ $('Format Review Parameters').first().json.invoice_amount !== undefined && $('Format Review Parameters').first().json.invoice_amount !== '' ? Number($('Format Review Parameters').first().json.invoice_amount) : undefined }}",
+            "invoice_status": "={{ $('Format Review Parameters').first().json.invoice_payment_status || 'pending' }}",
+            "milestone_type": "={{ $('Format Review Parameters').first().json.legal_proceeding_stage }}",
+            "triggered_by": "={{ $('Format Review Parameters').first().json.requester_role }}",
+            "is_initial_assignment": "={{ $('Format Review Parameters').first().json.is_initial_advocate_assignment }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "4fe0f4d6-12d6-47d0-b6d0-622a05c551c0",
+      "name": "Dispatch Client Milestone",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        -256,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c-has-inv",
+              "leftValue": "={{ !$('Format Review Parameters').first().json.is_initial_assignment && Boolean($('Format Review Parameters').first().json.pending_invoice_id) && !['no pending invoice', '', 'none'].includes($('Format Review Parameters').first().json.pending_invoice_id.toLowerCase()) && $('Format Review Parameters').first().json.has_invoice_changes === true }}",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              },
+              "rightValue": true
+            }
+          ],
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          }
+        },
+        "options": {}
+      },
+      "id": "e2f16353-7e90-44fd-992d-d4543b44d564",
+      "name": "Has Pending Invoice?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        208,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $vars.TABLE_WORKFLOW_HISTORY || 'zLUIArHa9Po3oyoW' }}"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "case_id",
+              "condition": "ilike",
+              "keyValue": "={{ $('Format Review Parameters').first().json.case_id }}"
+            },
+            {
+              "keyName": "invoice_id",
+              "keyValue": "={{ $('Format Review Parameters').first().json.pending_invoice_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "amount": "={{ Number($('Format Review Parameters').first().json.invoice_amount) || undefined }}",
+            "decision": "Approved",
+            "final_status": "Approved",
+            "invoice_status": "={{ $('Format Review Parameters').first().json.invoice_payment_status }}",
+            "updated_by": "={{ $('Format Review Parameters').first().json.requester_role }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "1e173f4f-53e1-4aa7-b158-dc91fa2a0863",
+      "name": "Update Invoice Record",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        496,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $vars.FIRM_ADMIN_EMAIL }}",
+        "subject": "={{ '[INVOICE PAYMENT & STATUS UPDATE] Case #' + $('Format Review Parameters').first().json.case_id + ' — Invoice ' + $('Format Review Parameters').first().json.pending_invoice_id + ' (' + $('Format Review Parameters').first().json.invoice_payment_status.toUpperCase() + ')' }}",
+        "message": "={{ '<div style=\"font-family: Arial, sans-serif; line-height: 1.6; color: #1e293b; max-width: 600px; margin: 0 auto; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;\"><div style=\"background-color: #0f766e; color: #ffffff; padding: 20px 24px;\"><h2 style=\"margin: 0; font-size: 20px; font-weight: 700;\">💳 Invoice & Payment Status Update</h2><p style=\"margin: 6px 0 0 0; opacity: 0.9; font-size: 14px;\">Case Reference: <strong>#' + $('Format Review Parameters').first().json.case_id + '</strong> | ' + $('Format Review Parameters').first().json.client_name + '</p></div><div style=\"padding: 24px;\"><p>Dear Administrator & Client,</p><p>The billing invoice record for Case <strong>#' + $('Format Review Parameters').first().json.case_id + '</strong> has been updated in the practice management system:</p><div style=\"background-color: #f0fdfa; border-left: 4px solid #0f766e; padding: 16px; margin: 18px 0; border-radius: 4px;\"><table border=\"0\" cellpadding=\"6\" style=\"width: 100%; border-collapse: collapse; font-size: 14px;\"><tr><td style=\"width: 38%; color: #64748b;\"><strong>Invoice Reference:</strong></td><td><strong style=\"color: #0f172a;\">' + $('Format Review Parameters').first().json.pending_invoice_id + '</strong></td></tr><tr><td style=\"color: #64748b;\"><strong>Client Name:</strong></td><td><strong style=\"color: #0f172a;\">' + $('Format Review Parameters').first().json.client_name + '</strong></td></tr><tr><td style=\"color: #64748b;\"><strong>Invoice Amount:</strong></td><td><strong style=\"color: #0f766e; font-size: 15px;\">₹' + Number($('Format Review Parameters').first().json.invoice_amount || 0).toLocaleString('en-IN') + '</strong></td></tr><tr><td style=\"color: #64748b;\"><strong>Payment Status:</strong></td><td><span style=\"background: ' + ($('Format Review Parameters').first().json.invoice_payment_status.toLowerCase() === 'paid' ? '#dcfce7' : '#fef9c3') + '; color: ' + ($('Format Review Parameters').first().json.invoice_payment_status.toLowerCase() === 'paid' ? '#15803d' : '#854d0e') + '; padding: 3px 10px; border-radius: 4px; font-weight: bold; text-transform: uppercase;\">' + $('Format Review Parameters').first().json.invoice_payment_status + '</span></td></tr><tr><td style=\"color: #64748b;\"><strong>Updated By:</strong></td><td><span>' + $('Format Review Parameters').first().json.requester_role + '</span></td></tr></table></div><p style=\"font-size: 13px; color: #475569;\">All financial ledgers and case audit records have been reconciled with this status.</p><hr style=\"border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;\"/><p style=\"font-size: 12px; color: #64748b; margin: 0; text-align: center;\">Legal Practice Management System &bull; Privileged & Confidential Financial Notice</p></div></div>' }}",
+        "options": {
+          "ccList": "={{ $('Format Review Parameters').first().json.client_email || $vars.FIRM_ADMIN_EMAIL }}"
+        }
+      },
+      "id": "8055f320-6637-4f5f-b083-9a817763b926",
+      "name": "Send Invoice Update Email to Admin and Client",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        720,
+        112
+      ],
+      "webhookId": "ac023154-341f-4f21-b94e-9553ebd38eb7",
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "sVmGKpNsTs1T3jnJ",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Format Review Parameters').first().json.advocate_email }}",
+        "subject": "={{ '⚖️ [NEW CASE ASSIGNMENT] Case #' + $('Format Review Parameters').first().json.case_id + ' — Client: ' + $('Format Review Parameters').first().json.client_name }}",
+        "message": "={{ '<div style=\"font-family: Arial, sans-serif; line-height: 1.6; color: #1e293b; max-width: 600px; margin: 0 auto; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;\"><div style=\"background-color: #0f172a; color: #ffffff; padding: 20px 24px;\"><h2 style=\"margin: 0; font-size: 20px; font-weight: 700;\">⚖️ New Case Assignment Brief</h2><p style=\"margin: 6px 0 0 0; opacity: 0.9; font-size: 14px;\">Case Reference: <strong>#' + $('Format Review Parameters').first().json.case_id + '</strong></p></div><div style=\"padding: 24px;\"><p>Dear <strong>' + ($('Format Review Parameters').first().json.advocate_name || 'Counsel') + '</strong>,</p><p>You have been formally assigned as dedicated legal counsel for <strong>Case #' + $('Format Review Parameters').first().json.case_id + '</strong>. Please review the client and case matter intelligence below:</p><div style=\"background-color: #f8fafc; border-left: 4px solid #2563eb; padding: 16px; margin: 18px 0; border-radius: 4px;\"><h4 style=\"margin: 0 0 10px 0; color: #1e3a8a; font-size: 15px;\">👤 Client Profile & Contact</h4><table border=\"0\" cellpadding=\"5\" style=\"width: 100%; border-collapse: collapse; font-size: 14px;\"><tr><td style=\"width: 35%; color: #64748b;\"><strong>Client Name:</strong></td><td><strong>' + $('Format Review Parameters').first().json.client_name + '</strong></td></tr><tr><td style=\"color: #64748b;\"><strong>Client Email:</strong></td><td><a href=\"mailto:' + $('Format Review Parameters').first().json.client_email + '\">' + $('Format Review Parameters').first().json.client_email + '</a></td></tr><tr><td style=\"color: #64748b;\"><strong>Location:</strong></td><td>' + $('Format Review Parameters').first().json.client_address + ', ' + $('Format Review Parameters').first().json.client_location + ' (PIN: ' + $('Format Review Parameters').first().json.client_pincode + ')</td></tr><tr><td style=\"color: #64748b;\"><strong>Adverse Party:</strong></td><td><strong style=\"color: #b91c1c;\">' + $('Format Review Parameters').first().json.adverse_party + '</strong></td></tr></table></div><div style=\"background-color: #f8fafc; border-left: 4px solid #4f46e5; padding: 16px; margin: 18px 0; border-radius: 4px;\"><h4 style=\"margin: 0 0 10px 0; color: #3730a3; font-size: 15px;\">🏛️ Proceeding & Hearing Details</h4><table border=\"0\" cellpadding=\"5\" style=\"width: 100%; border-collapse: collapse; font-size: 14px;\"><tr><td style=\"width: 35%; color: #64748b;\"><strong>Legal Stage:</strong></td><td><span style=\"background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: 4px; font-weight: 600;\">' + $('Format Review Parameters').first().json.legal_proceeding_stage + '</span></td></tr><tr><td style=\"color: #64748b;\"><strong>Urgency Level:</strong></td><td><strong>' + $('Format Review Parameters').first().json.urgency_level + ' PRIORITY</strong></td></tr>' + ($('Format Review Parameters').first().json.court_name ? ('<tr><td style=\"color: #64748b;\"><strong>Court / Bench:</strong></td><td><strong>' + $('Format Review Parameters').first().json.court_name + '</strong></td></tr>') : '') + ($('Format Review Parameters').first().json.hearing_date ? ('<tr><td style=\"color: #64748b;\"><strong>Court Date & Time:</strong></td><td><strong>📅 ' + $('Format Review Parameters').first().json.hearing_date + ($('Format Review Parameters').first().json.hearing_time ? (' at ' + $('Format Review Parameters').first().json.hearing_time) : '') + '</strong></td></tr>') : '') + ($('Format Review Parameters').first().json.milestone_remarks ? ('<tr><td style=\"color: #64748b;\"><strong>Instructions:</strong></td><td><em>' + $('Format Review Parameters').first().json.milestone_remarks + '</em></td></tr>') : '') + '</table></div><div style=\"margin: 20px 0;\"><h4 style=\"margin: 0 0 10px 0; color: #0f172a; font-size: 14px;\">📁 Case Documents & AI Briefs:</h4><table width=\"100%\" cellpadding=\"8\" cellspacing=\"0\">' + ($('Fetch Case Directory').first().json.jotter_url ? ('<tr><td style=\"padding: 6px 0;\"><a href=\"' + $('Fetch Case Directory').first().json.jotter_url + '\" target=\"_blank\" style=\"background: #4f46e5; color: #ffffff; padding: 10px 16px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: bold; display: block; text-align: center;\">📝 View Jotter Note / AI Legal Brief</a></td></tr>') : '') + ($('Fetch Case Directory').first().json.document_url ? ('<tr><td style=\"padding: 6px 0;\"><a href=\"' + $('Fetch Case Directory').first().json.document_url + '\" target=\"_blank\" style=\"background: #2563eb; color: #ffffff; padding: 10px 16px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: bold; display: block; text-align: center;\">📄 View Original Case Document in Vault</a></td></tr>') : '') + (($('Dispatch Engagement Document').isExecuted && $('Dispatch Engagement Document').first().json.document_url) ? ('<tr><td style=\"padding: 6px 0;\"><a href=\"' + $('Dispatch Engagement Document').first().json.document_url + '\" target=\"_blank\" style=\"background: #16a34a; color: #ffffff; padding: 10px 16px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: bold; display: block; text-align: center;\">📑 View Client Engagement Agreement</a></td></tr>') : '') + '</table></div><hr style=\"border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;\"/><p style=\"font-size: 12px; color: #64748b; margin: 0; text-align: center;\">Legal Practice Management System &bull; Privileged & Confidential Counsel Communication</p></div></div>' }}",
+        "options": {
+          "ccList": "={{ $vars.FIRM_ADMIN_EMAIL }}"
+        }
+      },
+      "id": "send-adv-brief-node",
+      "name": "Send Advocate Assignment Brief",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -112,
+        192
+      ],
+      "webhookId": "cb8830c6-dd40-45f6-bce7-f325bf940fd0",
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "sVmGKpNsTs1T3jnJ",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ Boolean($('Format Review Parameters').first().json.advocate_email && !$('Format Review Parameters').first().json.is_declined) }}",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              },
+              "rightValue": true
+            }
+          ],
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          }
+        },
+        "options": {}
+      },
+      "id": "is-adv-assigned-node",
+      "name": "Is Advocate Assigned?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -784,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ Boolean($('Format Review Parameters').first().json.is_initial_advocate_assignment) }}",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              },
+              "rightValue": true
+            }
+          ],
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          }
+        },
+        "options": {}
+      },
+      "id": "fc7324fc-9b49-468c-942d-578a69aca348",
+      "name": "Is Initial Assignment?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -560,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Format Review Parameters').first().json.advocate_email }}",
+        "subject": "={{ '⚖️ [CASE UPDATE] Case #' + $('Format Review Parameters').first().json.case_id + ' — Proceeding & Schedule Updated' }}",
+        "message": "={{ '<div style=\"font-family: Arial, sans-serif; line-height: 1.6; color: #1e293b; max-width: 600px; margin: 0 auto; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;\"><div style=\"background-color: #0f172a; color: #ffffff; padding: 20px 24px;\"><h2 style=\"margin: 0; font-size: 20px; font-weight: 700;\">⚖️ Case Proceeding & Schedule Update</h2><p style=\"margin: 6px 0 0 0; opacity: 0.9; font-size: 14px;\">Case Reference: <strong>#' + $('Format Review Parameters').first().json.case_id + '</strong></p></div><div style=\"padding: 24px;\"><p>Dear <strong>' + ($('Format Review Parameters').first().json.advocate_name || 'Counsel') + '</strong>,</p><p>The court schedule and proceeding details for <strong>Case #' + $('Format Review Parameters').first().json.case_id + '</strong> have been updated in the practice management system. Please review the updated matter status below:</p><div style=\"background-color: #f8fafc; border-left: 4px solid #0284c7; padding: 16px; margin: 18px 0; border-radius: 4px;\"><h4 style=\"margin: 0 0 10px 0; color: #0369a1; font-size: 15px;\">📋 Updated Proceeding & Schedule</h4><table border=\"0\" cellpadding=\"5\" style=\"width: 100%; border-collapse: collapse; font-size: 14px;\"><tr><td style=\"width: 35%; color: #64748b;\"><strong>Case ID:</strong></td><td><code style=\"font-weight: bold; color: #0f172a;\">' + $('Format Review Parameters').first().json.case_id + '</code></td></tr><tr><td style=\"color: #64748b;\"><strong>Client Name:</strong></td><td><strong>' + $('Format Review Parameters').first().json.client_name + '</strong></td></tr><tr><td style=\"color: #64748b;\"><strong>Legal Stage:</strong></td><td><span style=\"background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 4px; font-weight: 600;\">' + $('Format Review Parameters').first().json.legal_proceeding_stage + '</span></td></tr><tr><td style=\"color: #64748b;\"><strong>Urgency Level:</strong></td><td><strong>' + $('Format Review Parameters').first().json.urgency_level + ' PRIORITY</strong></td></tr>' + ($('Format Review Parameters').first().json.court_name ? ('<tr><td style=\"color: #64748b;\"><strong>Court / Bench:</strong></td><td><strong>' + $('Format Review Parameters').first().json.court_name + '</strong></td></tr>') : '') + ($('Format Review Parameters').first().json.hearing_date ? ('<tr><td style=\"color: #64748b;\"><strong>Court Date & Time:</strong></td><td><strong style=\"color: #0284c7;\">📅 ' + $('Format Review Parameters').first().json.hearing_date + ($('Format Review Parameters').first().json.hearing_time ? (' at ' + $('Format Review Parameters').first().json.hearing_time) : '') + '</strong></td></tr>') : '') + ($('Format Review Parameters').first().json.milestone_remarks ? ('<tr><td style=\"color: #64748b;\"><strong>Instructions / Notes:</strong></td><td><em>' + $('Format Review Parameters').first().json.milestone_remarks + '</em></td></tr>') : '') + '</table></div><div style=\"margin: 20px 0;\"><h4 style=\"margin: 0 0 10px 0; color: #0f172a; font-size: 14px;\">📁 Case Documents & AI Briefs:</h4><table width=\"100%\" cellpadding=\"8\" cellspacing=\"0\">' + ($('Fetch Case Directory').first().json.jotter_url ? ('<tr><td style=\"padding: 6px 0;\"><a href=\"' + $('Fetch Case Directory').first().json.jotter_url + '\" target=\"_blank\" style=\"background: #4f46e5; color: #ffffff; padding: 10px 16px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: bold; display: block; text-align: center;\">📝 View Jotter Note / AI Legal Brief</a></td></tr>') : '') + ($('Fetch Case Directory').first().json.document_url ? ('<tr><td style=\"padding: 6px 0;\"><a href=\"' + $('Fetch Case Directory').first().json.document_url + '\" target=\"_blank\" style=\"background: #2563eb; color: #ffffff; padding: 10px 16px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: bold; display: block; text-align: center;\">📄 View Original Case Document in Vault</a></td></tr>') : '') + (($('Dispatch Engagement Document').isExecuted && $('Dispatch Engagement Document').first().json.document_url) ? ('<tr><td style=\"padding: 6px 0;\"><a href=\"' + $('Dispatch Engagement Document').first().json.document_url + '\" target=\"_blank\" style=\"background: #16a34a; color: #ffffff; padding: 10px 16px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: bold; display: block; text-align: center;\">📑 View Client Engagement Agreement</a></td></tr>') : '') + '</table></div><hr style=\"border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;\"/><p style=\"font-size: 12px; color: #64748b; margin: 0; text-align: center;\">Legal Practice Management System &bull; Privileged & Confidential Counsel Communication</p></div></div>' }}",
+        "options": {
+          "ccList": "={{ $vars.FIRM_ADMIN_EMAIL }}"
+        }
+      },
+      "id": "5dcb34d3-c011-4820-9482-d1eb0bf8feea",
+      "name": "Send Advocate Case Update Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -112,
+        384
+      ],
+      "webhookId": "456de02f-138a-459f-8c84-a3b43aadad70",
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "sVmGKpNsTs1T3jnJ",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c-adv-proc-chg",
+              "leftValue": "={{ $('Format Review Parameters').first().json.has_proceeding_changes }}",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              },
+              "rightValue": true
+            }
+          ],
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          }
+        },
+        "options": {}
+      },
+      "id": "00001660-e1dd-47dd-8cff-b95c32090f90",
+      "name": "Has Proceeding Changes for Advocate?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -336,
+        448
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Case Directory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Case Directory": {
+      "main": [
+        [
+          {
+            "node": "Format Review Parameters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Review Parameters": {
+      "main": [
+        [
+          {
+            "node": "Should Generate Engagement?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Should Generate Engagement?": {
+      "main": [
+        [
+          {
+            "node": "Dispatch Engagement Document",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Case Directory Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dispatch Engagement Document": {
+      "main": [
+        [
+          {
+            "node": "Update Case Directory Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Should Send Milestone Email?": {
+      "main": [
+        [
+          {
+            "node": "Dispatch Client Milestone",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Has Pending Invoice?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dispatch Client Milestone": {
+      "main": [
+        [
+          {
+            "node": "Has Pending Invoice?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Pending Invoice?": {
+      "main": [
+        [
+          {
+            "node": "Update Invoice Record",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Invoice Record": {
+      "main": [
+        [
+          {
+            "node": "Send Invoice Update Email to Admin and Client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Invoice Update Email to Admin and Client": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Case Directory Record": {
+      "main": [
+        [
+          {
+            "node": "Is Advocate Assigned?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Advocate Assigned?": {
+      "main": [
+        [
+          {
+            "node": "Is Initial Assignment?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Should Send Milestone Email?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Advocate Assignment Brief": {
+      "main": [
+        [
+          {
+            "node": "Should Send Milestone Email?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Initial Assignment?": {
+      "main": [
+        [
+          {
+            "node": "Send Advocate Assignment Brief",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Has Proceeding Changes for Advocate?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Advocate Case Update Email": {
+      "main": [
+        [
+          {
+            "node": "Should Send Milestone Email?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Proceeding Changes for Advocate?": {
+      "main": [
+        [
+          {
+            "node": "Send Advocate Case Update Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Should Send Milestone Email?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true,
+    "errorWorkflow": "Dvao8HFN2GnGuaQZ"
+  },
+  "versionId": "a1689213-3134-4cf9-89ac-200392a28211",
+  "meta": {
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp",
+    "instanceId": "1b7f2b8bd7379ce28884aabf2215f3c90ff32a7e4c4f1088ddd7ce0532074b6f"
+  },
+  "nodeGroups": [
+    {
+      "id": "a9dc3d58-17c7-493c-9b52-b3cdcc2a35bf",
+      "name": "Case Intake & Directory Synchronization",
+      "nodeIds": [
+        "ecee5230-187f-43a9-9e75-e635f3ec4437",
+        "e9640e58-1acd-439b-a443-69aac94f3a88",
+        "60912981-f502-4ded-b118-616b3c896c5e",
+        "196fc7d9-5ad8-4d2a-bc39-6783bde67d42",
+        "cb150bf4-7bbd-4654-93d3-b2f2271ed790"
+      ],
+      "description": "Synchronizes case directory, formats review parameters, and generates engagement agreements."
+    },
+    {
+      "id": "da5e179e-c151-4a2e-aa47-f7c9415b3277",
+      "name": "Client Milestone Dispatch",
+      "nodeIds": [
+        "4fe0f4d6-12d6-47d0-b6d0-622a05c551c0"
+      ],
+      "description": "Executes client milestone notification sub-workflow and dispatches formal client notices."
+    },
+    {
+      "id": "1af8fb4a-2329-4bf4-b43f-ef1695099b49",
+      "name": "Invoice Settlement & Financial Notification",
+      "nodeIds": [
+        "1e173f4f-53e1-4aa7-b158-dc91fa2a0863",
+        "8055f320-6637-4f5f-b083-9a817763b926"
+      ],
+      "description": "Updates invoice settlement records and dispatches formal receipts to Firm Admin and Client."
+    },
+    {
+      "id": "c03602fd-f7c3-4067-9a04-4dcde3a6b74c",
+      "name": "Advocate Assignment & Milestone Routing",
+      "nodeIds": [
+        "is-adv-assigned-node",
+        "fc7324fc-9b49-468c-942d-578a69aca348",
+        "send-adv-brief-node",
+        "00001660-e1dd-47dd-8cff-b95c32090f90",
+        "5dcb34d3-c011-4820-9482-d1eb0bf8feea",
+        "1b2ef252-2e8c-4f32-af1c-32bfece8f520"
+      ],
+      "description": "Routes initial assignment briefs, proceeding updates, and milestone evaluation for assigned counsel."
+    }
+  ],
+  "id": "pc0Ls0KCMyOimTEL",
+  "tags": []
+}

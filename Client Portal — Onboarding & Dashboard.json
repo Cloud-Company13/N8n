@@ -1,0 +1,1411 @@
+{
+  "name": "Client Portal — Onboarding & Dashboard",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Legal Services — Client Portal",
+        "formDescription": "Access your case directory, view legal milestones, or sign up as a new client.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Select Action",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "New Client (Sign Up)"
+                  },
+                  {
+                    "option": "Existing Client (Login)"
+                  }
+                ]
+              },
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6e84429a-c9b6-4525-ace1-724d680be1f2",
+      "name": "Client Portal",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        -128,
+        64
+      ],
+      "webhookId": "045da56e-cbe9-48d3-83bb-39db73bb1a6c"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "rule-signup",
+                    "leftValue": "={{ ($json['Select Action'] || '').toString().toLowerCase().trim() }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    },
+                    "rightValue": "sign up"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "rule-login",
+                    "leftValue": "={{ ($json['Select Action'] || '').toString().toLowerCase().trim() }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    },
+                    "rightValue": "login"
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Fallback"
+        }
+      },
+      "id": "199ff6b5-bc0c-4442-ad5d-185a682381d2",
+      "name": "Route Action",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        96,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Full Name",
+              "placeholder": "e.g. John Doe",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Email Address",
+              "fieldType": "email",
+              "placeholder": "e.g. client@example.com",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Location",
+              "placeholder": "e.g. Ahmedabad, Gujarat",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Address",
+              "placeholder": "e.g. 402 Binori B Square, SG Highway",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Pincode",
+              "placeholder": "e.g. 380058",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Attach Case Document / Notice",
+              "fieldType": "file"
+            }
+          ]
+        },
+        "options": {
+          "formTitle": "Client Registration",
+          "formDescription": "Please enter your details to create your legal case profile."
+        }
+      },
+      "id": "c688f1b2-d791-4df7-9b67-4f9648654ba6",
+      "name": "Sign-Up Form",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        480,
+        64
+      ],
+      "webhookId": "2ef0cbe0-8d3f-440b-a336-8ea4be9f6650"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $vars.TABLE_CASE_DIRECTORY || 'PFF0bSgccDIC5E5T' }}"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "case_owner_email",
+              "condition": "ilike",
+              "keyValue": "={{ $('Sign-Up Form').isExecuted ? $('Sign-Up Form').first().json['Email Address'].trim() : (($('Execute Workflow Trigger').first().json.client_email || $json.client_email || '').trim()) }}"
+            },
+            {
+              "keyName": "client_name",
+              "condition": "ilike",
+              "keyValue": "={{ $('Sign-Up Form').isExecuted ? $('Sign-Up Form').first().json['Full Name'].trim() : (($('Execute Workflow Trigger').first().json.client_name || $json.client_name || '').trim()) }}"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "id": "e2b48def-83fa-41d1-8d79-fc6fc33660d8",
+      "name": "Lookup Existing Client",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        912,
+        624
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "check-is-duplicate",
+              "leftValue": "={{ Boolean($json.is_duplicate) }}",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              },
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "bfe43634-5aea-4279-8f42-4c6384608b10",
+      "name": "Is Already Registered?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2704,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "Account / Profile Already Exists",
+        "completionMessage": "=<h3>Notice: Existing Profile Detected</h3><p>Dear <strong>{{ $json.client_name }}</strong>,</p><p>{{ $json.duplicate_type === 'email_match' ? ('An active client account already exists under the email: <strong>' + $json.client_email + '</strong>.') : ('An active matter profile (Case #' + $json.matched_case_id + ') already exists for <strong>' + $json.client_name + '</strong> at this location.') }}</p><p>You do not need to register a duplicate profile. Please use your existing Case ID or log in to the Client Portal.</p>",
+        "options": {}
+      },
+      "id": "b67e1202-5410-47c2-8e63-16f79e8d4af1",
+      "name": "Already Registered Screen",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        1664,
+        672
+      ],
+      "webhookId": "686fae9d-b38d-41ed-a56c-c14c5279a36c"
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "Registration Successful & Document Vault Created",
+        "completionMessage": "=<h3>🎉 Welcome to Our Firm!</h3>\n<p>Dear <strong>{{ $json.client_name || $('Execute Universal Matter Intake Engine').first().json.client_name }}</strong>,</p>\n<p>Your legal matter profile has been successfully registered in our case directory.</p>\n<p>Your official Case ID is: <strong style=\"font-size: 18px; color: #1a73e8;\">{{ $json.case_id || $('Execute Universal Matter Intake Engine').first().json.case_id }}</strong></p>\n<p>Your digital matter vault and onboarding confirmation have been established.</p>\n",
+        "options": {}
+      },
+      "id": "992c2c78-f3af-4b5f-8746-60179b62ff35",
+      "name": "Registration Success Screen",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        1888,
+        480
+      ],
+      "webhookId": "da53597b-d91a-4f6c-9106-5ace16d7b582"
+    },
+    {
+      "parameters": {
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Registered Email Address",
+              "fieldType": "email",
+              "placeholder": "Enter your registered email",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "formTitle": "Client Login",
+          "formDescription": "Access your case directory, milestone updates, and invoice repository."
+        }
+      },
+      "id": "6c65358c-603c-478b-aefe-ea68db54e85b",
+      "name": "Login Form",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        384,
+        96
+      ],
+      "webhookId": "71d84802-6404-4019-bdcd-6a12bcd55a7a"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $vars.TABLE_CASE_DIRECTORY || 'PFF0bSgccDIC5E5T' }}"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "case_owner_email",
+              "condition": "ilike",
+              "keyValue": "={{ $('Login Form').first().json['Registered Email Address'].trim() }}"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "id": "4db18c33-30c8-43e8-9d46-8462335c0538",
+      "name": "Lookup Client Cases",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        608,
+        96
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "cond-found",
+              "leftValue": "={{ Boolean($('Lookup Client Cases').all().filter(item => Boolean(item.json.case_id)).length > 0) }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "rightValue": true
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "89874ffe-1cb7-44d9-bc57-75a55cda98ac",
+      "name": "Is Client Found?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        832,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "Client Case Dashboard",
+        "completionMessage": "=<h3>👤 Client Case Dashboard</h3>\n<p>Welcome back, <strong>{{ $('Lookup Client Cases').all().find(i => Boolean(i.json.client_name)) ? $('Lookup Client Cases').all().find(i => Boolean(i.json.client_name)).json.client_name : $('Login Form').first().json['Registered Email Address'] }}</strong>!</p>\n<div style='margin-bottom: 20px;'>\n{{ $('Lookup Client Cases').all().filter(i => Boolean(i.json.case_id)).map((c, index) => {\n  const stage = (c.json.legal_proceeding_stage || 'paper filed').toLowerCase().trim();\n  const isClosed = (c.json.case_status || '').toLowerCase().trim() === 'closed';\n  const practicePortal = $vars.PRACTICE_PORTAL_URL;\n  \n  let milestoneBadge = '✅ <strong>Onboarding Welcome</strong> completed<br/>';\n  if (isClosed) {\n    milestoneBadge += '🏁 <strong>Case Closed & Concluded</strong>';\n  } else if (stage === 'final judgment') {\n    milestoneBadge += '📜 <strong>Final Judgment Delivered</strong> (Awaiting post-judgment compliance / closure)';\n  } else if (stage === 'under-trial') {\n    milestoneBadge += '🔍 <strong>Active Trial Proceedings</strong> (Evidence & witness examination in progress)';\n  } else if (stage === 'hearing') {\n    milestoneBadge += '⚖️ <strong>Court Hearing Scheduled / In Progress</strong>';\n  } else {\n    milestoneBadge += '📌 <strong>Initial Pleadings Filed</strong> (Case docket registered on court registry)';\n  }\n\n  const courtListingRow = c.json.hearing_date ? ('<tr><td><strong>Upcoming Court Listing:</strong></td><td><span style=\\\"background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 4px; font-weight: bold;\\\">📅 ' + c.json.hearing_date + (c.json.hearing_time ? ' at ' + c.json.hearing_time : '') + '</span>' + (c.json.court_name ? (' &bull; <em>' + c.json.court_name + '</em>') : '') + '</td></tr>') : '';\n\n  const docVaultRow = c.json.document_url ? (\n    '<tr><td><strong>Original Case Document:</strong></td><td>' +\n    '<a href=\\\"' + c.json.document_url + '\\\" target=\\\"_blank\\\" style=\\\"display: inline-block; padding: 5px 12px; background-color: #16a34a; color: #ffffff; text-decoration: none; border-radius: 4px; font-size: 12px; font-weight: 600;\\\">📄 Open Original Document in Vault</a>' +\n    ' <span style=\\\"font-size: 12px; color: #555; margin-left: 6px;\\\">(' + (c.json.document_title || 'Case Document') + ')</span>' +\n    '</td></tr>' +\n    (c.json.document_summary ? ('<tr><td style=\\\"vertical-align: top;\\\"><strong>Key Case Points:</strong></td><td style=\\\"font-size: 13px; color: #333;\\\"><ul style=\\\"margin: 0; padding-left: 18px;\\\">' + c.json.document_summary.split('\\n').filter(l => l.trim()).map(l => '<li style=\\\"margin-bottom: 2px;\\\">' + l.replace(/^[•\\-\\*]\\s*/, '').trim() + '</li>').join('') + '</ul></td></tr>') : '')\n  ) : (\n    '<tr><td><strong>Case Documents & Files:</strong></td><td><a href=\\\"' + practicePortal + '\\\" target=\\\"_blank\\\" style=\\\"display: inline-block; margin-top: 4px; padding: 4px 10px; background-color: #1a73e8; color: #ffffff; text-decoration: none; border-radius: 4px; font-size: 12px; font-weight: 600;\\\">📥 View / Download Case Documents</a></td></tr>'\n  );\n\n  return '<div style=\\\"border: 1px solid #dcdcdc; padding: 14px; margin-bottom: 14px; border-radius: 8px; background-color: #fafafa; box-shadow: 0 1px 3px rgba(0,0,0,0.05);\\\">' +\n    '<div style=\\\"display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 8px; margin-bottom: 10px;\\\">' +\n      '<h4 style=\\\"margin: 0; color: #1a73e8; font-size: 16px;\\\">Case Record #' + (index + 1) + ' — ' + (c.json.case_id || 'N/A') + '</h4>' +\n      '<span style=\\\"text-transform: capitalize; padding: 3px 8px; background: ' + (isClosed ? '#e6f4ea; color: #137333;' : '#e8f0fe; color: #1a73e8;') + ' border-radius: 4px; font-weight: bold; font-size: 12px;\\\">' + (c.json.case_status || 'active') + '</span>' +\n    '</div>' +\n    '<table border=\\\"0\\\" cellpadding=\\\"5\\\" style=\\\"width: 100%; border-collapse: collapse; font-size: 14px;\\\">' +\n      '<tr><td style=\\\"width: 28%;\\\"><strong>Case Reference:</strong></td><td><code>' + (c.json.case_id || 'N/A') + '</code></td></tr>' +\n      '<tr><td><strong>Legal Stage:</strong></td><td><strong style=\\\"color: #202124;\\\">' + (c.json.legal_proceeding_stage || 'paper filed') + '</strong></td></tr>' +\n      '<tr><td><strong>Assigned Advocate:</strong></td><td>' + (c.json.advocate_name ? ('<strong>' + c.json.advocate_name + '</strong>' + (c.json.advocate_email ? ' &lt;' + c.json.advocate_email + '&gt;' : '')) : '<em style=\\\"color:#888;\\\">Pending Advocate Assignment</em>') + '</td></tr>' +\n      courtListingRow +\n      '<tr><td><strong>Milestone Progress:</strong></td><td>' + milestoneBadge + '</td></tr>' +\n      docVaultRow +\n    '</table>' +\n  '</div>';\n}).join('') }}\n</div>\n<hr style='border: 0; border-top: 1px solid #e0e0e0; margin: 20px 0;'/>\n<div style='margin-top: 15px;'>\n  <div style='padding: 12px; background-color: #f8f9fa; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 12px;'>\n    <p style='margin: 0 0 6px 0; color: #1a73e8;'><strong>📄 Financial & Invoice Repository:</strong></p>\n    <p style='margin: 0; color: #4a5568; font-size: 13px;'>To search, review, or download PDF invoices and payment receipts for your cases, access the <a href='{{ $vars.PRACTICE_PORTAL_URL }}' target='_blank' style='color: #1a73e8; font-weight: bold; text-decoration: underline;'>Invoice Management Portal</a>.</p>\n  </div>\n</div>",
+        "options": {}
+      },
+      "id": "a7b01a41-3f5c-409d-aac6-d3fcfc79e07c",
+      "name": "Client Dashboard Screen",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        1056,
+        0
+      ],
+      "webhookId": "a5a92c89-769e-4d54-ae69-d8e421787001"
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "Account Not Found",
+        "completionMessage": "=<h3>❌ Record Not Found</h3><p>We could not find any active case registered for: <strong>{{ $('Login Form').first().json['Registered Email Address'] }}</strong>.</p><p>Please verify your email address or return to the main portal to complete a <strong>New Client (Sign Up)</strong> registration.</p>",
+        "options": {}
+      },
+      "id": "dcecd9ea-55de-4f42-892d-18506cb9b71d",
+      "name": "Client Not Found Screen",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        1056,
+        192
+      ],
+      "webhookId": "96c80f24-42b6-400c-98dc-c0861589231d"
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "Invalid Selection",
+        "completionMessage": "Please select a valid option from the Client Portal menu.",
+        "options": {}
+      },
+      "id": "69e61817-b8a6-4d3f-b2f9-45a091da7439",
+      "name": "Invalid Selection Screen",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        480,
+        256
+      ],
+      "webhookId": "c7d25a4b-76f0-47a5-b09a-40473af7dae7"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "client_name"
+            },
+            {
+              "name": "client_email"
+            },
+            {
+              "name": "location"
+            },
+            {
+              "name": "address"
+            },
+            {
+              "name": "pincode"
+            }
+          ]
+        }
+      },
+      "id": "cd0c3fed-55bd-4a82-b522-25f8f710eb7a",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        480,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "check-is-form-dup",
+              "leftValue": "={{ $('Client Portal').isExecuted }}",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              },
+              "rightValue": ""
+            }
+          ],
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          }
+        },
+        "options": {}
+      },
+      "id": "f09f5aa9-ac77-4c8b-a979-3a15a10be037",
+      "name": "Is Direct Duplicate Webform?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1440,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "dup-ret-1",
+              "name": "case_id",
+              "type": "string",
+              "value": ""
+            },
+            {
+              "id": "dup-ret-2",
+              "name": "client_name",
+              "type": "string",
+              "value": "={{ $json.client_name }}"
+            },
+            {
+              "id": "dup-ret-3",
+              "name": "client_email",
+              "type": "string",
+              "value": "={{ $json.client_email }}"
+            },
+            {
+              "id": "dup-ret-4",
+              "name": "location",
+              "type": "string",
+              "value": "={{ $json.location }}"
+            },
+            {
+              "id": "dup-ret-5",
+              "name": "address",
+              "type": "string",
+              "value": "={{ $json.address }}"
+            },
+            {
+              "id": "dup-ret-6",
+              "name": "pincode",
+              "type": "string",
+              "value": "={{ $json.pincode }}"
+            },
+            {
+              "id": "dup-ret-7",
+              "name": "is_duplicate",
+              "type": "boolean",
+              "value": true
+            },
+            {
+              "id": "dup-ret-8",
+              "name": "duplicate_type",
+              "type": "string",
+              "value": "={{ $json.duplicate_type }}"
+            },
+            {
+              "id": "dup-ret-9",
+              "name": "matched_case_id",
+              "type": "string",
+              "value": "={{ $json.matched_case_id || '' }}"
+            },
+            {
+              "id": "dup-ret-10",
+              "name": "success",
+              "type": "boolean",
+              "value": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "62a0a731-c0ea-4a3c-b2ad-d32cc826a5de",
+      "name": "Prepare Duplicate Return Output",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1664,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "DXtSEaMaS4rhVExH"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "schema": [
+            {
+              "displayName": "client_name",
+              "id": "client_name",
+              "type": "string"
+            },
+            {
+              "displayName": "client_email",
+              "id": "client_email",
+              "type": "string"
+            },
+            {
+              "displayName": "location",
+              "id": "location",
+              "type": "string"
+            },
+            {
+              "displayName": "address",
+              "id": "address",
+              "type": "string"
+            },
+            {
+              "displayName": "pincode",
+              "id": "pincode",
+              "type": "string"
+            }
+          ],
+          "value": {
+            "address": "={{ $('Sign-Up Form').isExecuted ? $('Sign-Up Form').first().json['Address'] : $json.address }}",
+            "client_email": "={{ $('Sign-Up Form').isExecuted ? $('Sign-Up Form').first().json['Email Address'] : $json.client_email }}",
+            "client_name": "={{ $('Sign-Up Form').isExecuted ? $('Sign-Up Form').first().json['Full Name'] : $json.client_name }}",
+            "location": "={{ $('Sign-Up Form').isExecuted ? $('Sign-Up Form').first().json['Location'] : $json.location }}",
+            "pincode": "={{ $('Sign-Up Form').isExecuted ? $('Sign-Up Form').first().json['Pincode'] : $json.pincode }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "0816f9d8-36ab-4952-9da8-dca7b11fe3f7",
+      "name": "Execute Universal Matter Intake Engine",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1440,
+        384
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "2c902c93-cb66-43f5-a009-60a59e776915",
+      "name": "Limit to Single Item",
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        1136,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "pip-1",
+              "name": "client_name",
+              "type": "string",
+              "value": "={{ $('Sign-Up Form').isExecuted ? $('Sign-Up Form').first().json['Full Name'].trim() : ($('Execute Workflow Trigger').first().json.client_name || $json.client_name || '').trim() }}"
+            },
+            {
+              "id": "pip-2",
+              "name": "client_email",
+              "type": "string",
+              "value": "={{ $('Sign-Up Form').isExecuted ? $('Sign-Up Form').first().json['Email Address'].trim().toLowerCase() : ($('Execute Workflow Trigger').first().json.client_email || $json.client_email || '').trim().toLowerCase() }}"
+            },
+            {
+              "id": "pip-3",
+              "name": "location",
+              "type": "string",
+              "value": "={{ $('Sign-Up Form').isExecuted ? ($('Sign-Up Form').first().json['Location'] || '').trim().toLowerCase() : ($('Execute Workflow Trigger').first().json.location || $json.location || '').trim().toLowerCase() }}"
+            },
+            {
+              "id": "pip-4",
+              "name": "address",
+              "type": "string",
+              "value": "={{ $('Sign-Up Form').isExecuted ? ($('Sign-Up Form').first().json['Address'] || '').trim().toLowerCase() : ($('Execute Workflow Trigger').first().json.address || $json.address || '').trim().toLowerCase() }}"
+            },
+            {
+              "id": "pip-5",
+              "name": "pincode",
+              "type": "string",
+              "value": "={{ $('Sign-Up Form').isExecuted ? ($('Sign-Up Form').first().json['Pincode'] || '').toString().trim() : ($('Execute Workflow Trigger').first().json.pincode || $json.pincode || '').toString().trim() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "8d8fbb90-a23c-4f20-92bd-62b264ab00ff",
+      "name": "Prepare Intake Profile",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1360,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c1-email-match",
+              "leftValue": "={{ Boolean($('Lookup Existing Client').all().find(r => Boolean(r.json.case_id) && (r.json.case_owner_email || '').toLowerCase().trim() === $('Prepare Intake Profile').first().json.client_email)) }}",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              },
+              "rightValue": ""
+            }
+          ],
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          }
+        },
+        "options": {}
+      },
+      "id": "6078f679-eab7-4444-a92f-1434b9bb5813",
+      "name": "Check Point 1: Email Match",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1584,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fed-1",
+              "name": "is_duplicate",
+              "type": "boolean",
+              "value": true
+            },
+            {
+              "id": "fed-2",
+              "name": "duplicate_type",
+              "type": "string",
+              "value": "email_match"
+            },
+            {
+              "id": "fed-3",
+              "name": "matched_case_id",
+              "type": "string",
+              "value": "={{ $('Lookup Existing Client').all().find(r => Boolean(r.json.case_id) && (r.json.case_owner_email || '').toLowerCase().trim() === $('Prepare Intake Profile').first().json.client_email)?.json?.case_id || '' }}"
+            },
+            {
+              "id": "fed-4",
+              "name": "matched_case_owner",
+              "type": "string",
+              "value": "={{ $('Lookup Existing Client').all().find(r => Boolean(r.json.case_id) && (r.json.case_owner_email || '').toLowerCase().trim() === $('Prepare Intake Profile').first().json.client_email)?.json?.client_name || '' }}"
+            },
+            {
+              "id": "fed-5",
+              "name": "client_name",
+              "type": "string",
+              "value": "={{ $('Prepare Intake Profile').first().json.client_name }}"
+            },
+            {
+              "id": "fed-6",
+              "name": "client_email",
+              "type": "string",
+              "value": "={{ $('Prepare Intake Profile').first().json.client_email }}"
+            },
+            {
+              "id": "fed-7",
+              "name": "location",
+              "type": "string",
+              "value": "={{ $('Prepare Intake Profile').first().json.location }}"
+            },
+            {
+              "id": "fed-8",
+              "name": "address",
+              "type": "string",
+              "value": "={{ $('Prepare Intake Profile').first().json.address }}"
+            },
+            {
+              "id": "fed-9",
+              "name": "pincode",
+              "type": "string",
+              "value": "={{ $('Prepare Intake Profile').first().json.pincode }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "8b9b3e3f-2f99-452f-978e-2f8361af585c",
+      "name": "Format Email Duplicate Notice",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2480,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c2-person-match",
+              "leftValue": "={{ Boolean($('Lookup Existing Client').all().find(r => Boolean(r.json.case_id) && Boolean(r.json.client_name) && (r.json.client_name.toLowerCase().trim() === $('Prepare Intake Profile').first().json.client_name.toLowerCase() || r.json.client_name.toLowerCase().includes($('Prepare Intake Profile').first().json.client_name.toLowerCase()) || $('Prepare Intake Profile').first().json.client_name.toLowerCase().includes(r.json.client_name.toLowerCase().trim())) && ((Boolean(r.json.pincode) && Boolean($('Prepare Intake Profile').first().json.pincode) && String(r.json.pincode).trim() === $('Prepare Intake Profile').first().json.pincode) || (Boolean(r.json.location) && Boolean($('Prepare Intake Profile').first().json.location) && (r.json.location.toLowerCase().includes($('Prepare Intake Profile').first().json.location) || $('Prepare Intake Profile').first().json.location.includes(r.json.location.toLowerCase()))) || (Boolean(r.json.address) && Boolean($('Prepare Intake Profile').first().json.address) && (r.json.address.toLowerCase().includes($('Prepare Intake Profile').first().json.address) || $('Prepare Intake Profile').first().json.address.includes(r.json.address.toLowerCase())))))) }}",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              },
+              "rightValue": ""
+            }
+          ],
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          }
+        },
+        "options": {}
+      },
+      "id": "37dac03b-9926-42a9-9cd7-be1c252259e1",
+      "name": "Check Point 2: Same Person Match",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1808,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fsd-1",
+              "name": "is_duplicate",
+              "type": "boolean",
+              "value": true
+            },
+            {
+              "id": "fsd-2",
+              "name": "duplicate_type",
+              "type": "string",
+              "value": "same_person_duplicate"
+            },
+            {
+              "id": "fsd-3",
+              "name": "matched_case_id",
+              "type": "string",
+              "value": "={{ $('Lookup Existing Client').all().find(r => Boolean(r.json.case_id) && Boolean(r.json.client_name) && (r.json.client_name.toLowerCase().trim() === $('Prepare Intake Profile').first().json.client_name.toLowerCase() || r.json.client_name.toLowerCase().includes($('Prepare Intake Profile').first().json.client_name.toLowerCase()) || $('Prepare Intake Profile').first().json.client_name.toLowerCase().includes(r.json.client_name.toLowerCase().trim())))?.json?.case_id || '' }}"
+            },
+            {
+              "id": "fsd-4",
+              "name": "matched_case_owner",
+              "type": "string",
+              "value": "={{ $('Lookup Existing Client').all().find(r => Boolean(r.json.case_id) && Boolean(r.json.client_name) && (r.json.client_name.toLowerCase().trim() === $('Prepare Intake Profile').first().json.client_name.toLowerCase() || r.json.client_name.toLowerCase().includes($('Prepare Intake Profile').first().json.client_name.toLowerCase()) || $('Prepare Intake Profile').first().json.client_name.toLowerCase().includes(r.json.client_name.toLowerCase().trim())))?.json?.client_name || '' }}"
+            },
+            {
+              "id": "fsd-5",
+              "name": "client_name",
+              "type": "string",
+              "value": "={{ $('Prepare Intake Profile').first().json.client_name }}"
+            },
+            {
+              "id": "fsd-6",
+              "name": "client_email",
+              "type": "string",
+              "value": "={{ $('Prepare Intake Profile').first().json.client_email }}"
+            },
+            {
+              "id": "fsd-7",
+              "name": "location",
+              "type": "string",
+              "value": "={{ $('Prepare Intake Profile').first().json.location }}"
+            },
+            {
+              "id": "fsd-8",
+              "name": "address",
+              "type": "string",
+              "value": "={{ $('Prepare Intake Profile').first().json.address }}"
+            },
+            {
+              "id": "fsd-9",
+              "name": "pincode",
+              "type": "string",
+              "value": "={{ $('Prepare Intake Profile').first().json.pincode }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "889fdaf8-7499-4a3f-ad0d-ac0817d29c2f",
+      "name": "Format Same Person Duplicate Notice",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2480,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fcp-1",
+              "name": "is_duplicate",
+              "type": "boolean",
+              "value": false
+            },
+            {
+              "id": "fcp-2",
+              "name": "duplicate_type",
+              "type": "string",
+              "value": "none"
+            },
+            {
+              "id": "fcp-3",
+              "name": "matched_case_id",
+              "type": "string",
+              "value": ""
+            },
+            {
+              "id": "fcp-4",
+              "name": "matched_case_owner",
+              "type": "string",
+              "value": ""
+            },
+            {
+              "id": "fcp-5",
+              "name": "client_name",
+              "type": "string",
+              "value": "={{ $('Prepare Intake Profile').first().json.client_name }}"
+            },
+            {
+              "id": "fcp-6",
+              "name": "client_email",
+              "type": "string",
+              "value": "={{ $('Prepare Intake Profile').first().json.client_email }}"
+            },
+            {
+              "id": "fcp-7",
+              "name": "location",
+              "type": "string",
+              "value": "={{ $('Prepare Intake Profile').first().json.location }}"
+            },
+            {
+              "id": "fcp-8",
+              "name": "address",
+              "type": "string",
+              "value": "={{ $('Prepare Intake Profile').first().json.address }}"
+            },
+            {
+              "id": "fcp-9",
+              "name": "pincode",
+              "type": "string",
+              "value": "={{ $('Prepare Intake Profile').first().json.pincode }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d56a90a7-f12b-434f-bf7c-89d5d381357c",
+      "name": "Format Clear Intake Profile",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2032,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "has-doc-check",
+              "leftValue": "={{ Boolean($('Sign-Up Form').isExecuted && $('Sign-Up Form').first().binary && Object.keys($('Sign-Up Form').first().binary).length > 0) }}",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              },
+              "rightValue": ""
+            }
+          ],
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          }
+        },
+        "options": {}
+      },
+      "id": "134fc732-c511-4f82-8399-979edf8ca12f",
+      "name": "Check Has Document Uploaded?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2256,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "bin-att-1",
+              "name": "Attach_Case_Document___Notice",
+              "type": "binary",
+              "value": "={{ $('Sign-Up Form').item.binary.Attach_Case_Document___Notice }}"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "e2f9c3f2-7dc2-4445-a74a-0de7fde68411",
+      "name": "Attach File Binary",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2480,
+        864
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c-has-conflict",
+              "leftValue": "={{ Boolean($json.has_conflict) }}",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              },
+              "rightValue": ""
+            }
+          ],
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          }
+        },
+        "options": {}
+      },
+      "id": "e20e7e9e-5a9c-4df7-80b1-e916c9b0650b",
+      "name": "Has Intake Conflict?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1664,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "Conflict of Interest Detected",
+        "completionMessage": "=<h3>⚠️ Conflict of Interest Detected</h3><p style=\"font-size: 16px; margin-top: 12px; color: #1e293b;\"><strong>Conflict of interest detected — Case #{{ $json.case_id || $('Execute Universal Matter Intake Engine').first().json.case_id }} is pending approval.</strong></p>",
+        "options": {
+          "formTitle": "Conflict of Interest Detected"
+        }
+      },
+      "id": "4f1ee10a-18f1-4dd7-817c-d7cb3219e426",
+      "name": "Conflict Review Pending Screen",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        1888,
+        288
+      ],
+      "webhookId": "d33a0544-e850-4f74-b562-a21cfe45fd90"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Client Portal": {
+      "main": [
+        [
+          {
+            "node": "Route Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Action": {
+      "main": [
+        [
+          {
+            "node": "Sign-Up Form",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Login Form",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Invalid Selection Screen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sign-Up Form": {
+      "main": [
+        [
+          {
+            "node": "Lookup Existing Client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Already Registered?": {
+      "main": [
+        [
+          {
+            "node": "Is Direct Duplicate Webform?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Execute Universal Matter Intake Engine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Login Form": {
+      "main": [
+        [
+          {
+            "node": "Lookup Client Cases",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Client Cases": {
+      "main": [
+        [
+          {
+            "node": "Is Client Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Client Found?": {
+      "main": [
+        [
+          {
+            "node": "Client Dashboard Screen",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Client Not Found Screen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Lookup Existing Client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Direct Duplicate Webform?": {
+      "main": [
+        [
+          {
+            "node": "Already Registered Screen",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Duplicate Return Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Existing Client": {
+      "main": [
+        [
+          {
+            "node": "Limit to Single Item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit to Single Item": {
+      "main": [
+        [
+          {
+            "node": "Prepare Intake Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Intake Profile": {
+      "main": [
+        [
+          {
+            "node": "Check Point 1: Email Match",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Point 1: Email Match": {
+      "main": [
+        [
+          {
+            "node": "Format Email Duplicate Notice",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check Point 2: Same Person Match",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Point 2: Same Person Match": {
+      "main": [
+        [
+          {
+            "node": "Format Same Person Duplicate Notice",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Clear Intake Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Clear Intake Profile": {
+      "main": [
+        [
+          {
+            "node": "Check Has Document Uploaded?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Has Document Uploaded?": {
+      "main": [
+        [
+          {
+            "node": "Attach File Binary",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is Already Registered?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attach File Binary": {
+      "main": [
+        [
+          {
+            "node": "Is Already Registered?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Email Duplicate Notice": {
+      "main": [
+        [
+          {
+            "node": "Is Already Registered?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Same Person Duplicate Notice": {
+      "main": [
+        [
+          {
+            "node": "Is Already Registered?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Universal Matter Intake Engine": {
+      "main": [
+        [
+          {
+            "node": "Has Intake Conflict?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Intake Conflict?": {
+      "main": [
+        [
+          {
+            "node": "Conflict Review Pending Screen",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Registration Success Screen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true,
+    "errorWorkflow": "Dvao8HFN2GnGuaQZ"
+  },
+  "versionId": "1745b6d5-082a-4c87-9217-79c30c9a1c27",
+  "meta": {
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp",
+    "instanceId": "1b7f2b8bd7379ce28884aabf2215f3c90ff32a7e4c4f1088ddd7ce0532074b6f"
+  },
+  "nodeGroups": [
+    {
+      "id": "f49bd330-7f01-4850-8230-20dddf49c898",
+      "name": "Client Login & Dashboard",
+      "nodeIds": [
+        "6c65358c-603c-478b-aefe-ea68db54e85b",
+        "4db18c33-30c8-43e8-9d46-8462335c0538",
+        "89874ffe-1cb7-44d9-bc57-75a55cda98ac",
+        "a7b01a41-3f5c-409d-aac6-d3fcfc79e07c",
+        "dcecd9ea-55de-4f42-892d-18506cb9b71d"
+      ],
+      "description": "Authenticates existing clients and displays case progress, court dates, and vault files."
+    },
+    {
+      "id": "24acdb36-21dd-4751-b57d-7c4c4a86efa4",
+      "name": "Identity & Duplicate Evaluation",
+      "nodeIds": [
+        "e2b48def-83fa-41d1-8d79-fc6fc33660d8",
+        "2c902c93-cb66-43f5-a009-60a59e776915",
+        "8d8fbb90-a23c-4f20-92bd-62b264ab00ff",
+        "6078f679-eab7-4444-a92f-1434b9bb5813",
+        "8b9b3e3f-2f99-452f-978e-2f8361af585c",
+        "37dac03b-9926-42a9-9cd7-be1c252259e1",
+        "889fdaf8-7499-4a3f-ad0d-ac0817d29c2f",
+        "d56a90a7-f12b-434f-bf7c-89d5d381357c",
+        "134fc732-c511-4f82-8399-979edf8ca12f",
+        "e2f9c3f2-7dc2-4445-a74a-0de7fde68411",
+        "bfe43634-5aea-4279-8f42-4c6384608b10"
+      ],
+      "description": "Evaluates duplicate email and same-person identity overlap using native condition decision nodes."
+    },
+    {
+      "id": "ce63a0db-c673-440c-be63-06faac87a542",
+      "name": "Duplicate Notice & Return",
+      "nodeIds": [
+        "f09f5aa9-ac77-4c8b-a979-3a15a10be037",
+        "b67e1202-5410-47c2-8e63-16f79e8d4af1",
+        "62a0a731-c0ea-4a3c-b2ad-d32cc826a5de"
+      ],
+      "description": "Displays duplicate account notice or returns duplicate sub-workflow payload."
+    },
+    {
+      "id": "d0aefeec-0058-4fe7-bf52-6fd03c1d38e7",
+      "name": "Matter Registration & Conflict Review Pipeline",
+      "nodeIds": [
+        "0816f9d8-36ab-4952-9da8-dca7b11fe3f7",
+        "e20e7e9e-5a9c-4df7-80b1-e916c9b0650b",
+        "4f1ee10a-18f1-4dd7-817c-d7cb3219e426",
+        "992c2c78-f3af-4b5f-8746-60179b62ff35"
+      ],
+      "description": "Executes matter intake engine and routes client to conflict review pending or registration success screen."
+    }
+  ],
+  "id": "8opKeyFKTBSI2Nx0",
+  "tags": []
+}

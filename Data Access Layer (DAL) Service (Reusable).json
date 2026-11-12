@@ -1,0 +1,494 @@
+{
+  "name": "Data Access Layer (DAL) Service (Reusable)",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "table"
+            },
+            {
+              "name": "operation"
+            },
+            {
+              "name": "case_id"
+            },
+            {
+              "name": "invoice_id"
+            },
+            {
+              "name": "record_type"
+            },
+            {
+              "name": "setting_key"
+            },
+            {
+              "name": "user_role"
+            }
+          ]
+        }
+      },
+      "id": "e8b25b9c-e2a7-4280-9c43-028c1c2c7132",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "nr1",
+              "name": "table",
+              "type": "string",
+              "value": "={{ ($json.table || \"\").toString().toLowerCase().trim() }}"
+            },
+            {
+              "id": "nr2",
+              "name": "operation",
+              "type": "string",
+              "value": "={{ ($json.operation || \"get\").toString().toLowerCase().trim() }}"
+            },
+            {
+              "id": "nr3",
+              "name": "case_id",
+              "type": "string",
+              "value": "={{ ($json.case_id || \"\").toString().toUpperCase().trim() }}"
+            },
+            {
+              "id": "nr4",
+              "name": "invoice_id",
+              "type": "string",
+              "value": "={{ ($json.invoice_id || \"\").toString().trim() }}"
+            },
+            {
+              "id": "nr5",
+              "name": "record_type",
+              "type": "string",
+              "value": "={{ ($json.record_type || \"\").toString().trim() }}"
+            },
+            {
+              "id": "nr6",
+              "name": "setting_key",
+              "type": "string",
+              "value": "={{ ($json.setting_key || \"\").toString().trim() }}"
+            },
+            {
+              "id": "nr7",
+              "name": "user_role",
+              "type": "string",
+              "value": "={{ ($json.user_role || \"\").toString().trim() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "bf578661-d404-4736-b25a-c417f1d5f06b",
+      "name": "Normalize Request",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        288,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.table }}",
+                    "operator": {
+                      "operation": "equals",
+                      "type": "string"
+                    },
+                    "rightValue": "case_directory"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                }
+              },
+              "renameOutput": true,
+              "outputKey": "Case Directory"
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.table }}",
+                    "operator": {
+                      "operation": "equals",
+                      "type": "string"
+                    },
+                    "rightValue": "workflow_history"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                }
+              },
+              "renameOutput": true,
+              "outputKey": "Workflow History"
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.table }}",
+                    "operator": {
+                      "operation": "equals",
+                      "type": "string"
+                    },
+                    "rightValue": "workflow_settings"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                }
+              },
+              "renameOutput": true,
+              "outputKey": "Workflow Settings"
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.table }}",
+                    "operator": {
+                      "operation": "equals",
+                      "type": "string"
+                    },
+                    "rightValue": "statutory_deadlines"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                }
+              },
+              "renameOutput": true,
+              "outputKey": "Statutory Deadlines"
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.table }}",
+                    "operator": {
+                      "operation": "equals",
+                      "type": "string"
+                    },
+                    "rightValue": "permission_matrix"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                }
+              },
+              "renameOutput": true,
+              "outputKey": "Permission Matrix"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Fallback"
+        }
+      },
+      "id": "1554ff88-1f76-46dd-8dd4-849e46bf06fe",
+      "name": "Table Router",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        512,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $vars.TABLE_CASE_DIRECTORY || 'PFF0bSgccDIC5E5T' }}"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "case_id",
+              "condition": "ilike",
+              "keyValue": "={{ $(\"Normalize Request\").first().json.case_id }}"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "id": "5da0eec1-de52-4185-b262-a7dafcb1d387",
+      "name": "Query Case Directory",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        912,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $vars.TABLE_WORKFLOW_HISTORY || 'zLUIArHa9Po3oyoW' }}"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "case_id",
+              "condition": "ilike",
+              "keyValue": "={{ $(\"Normalize Request\").first().json.case_id }}"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "id": "bdc63c33-7f56-4d2b-b1b3-b4e0c89efa9a",
+      "name": "Query Workflow History",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        912,
+        -48
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $vars.TABLE_WORKFLOW_SETTINGS || '0EmE2wSYP1pfCuMa' }}"
+        },
+        "returnAll": true
+      },
+      "id": "3e7863d7-e93a-4cce-a765-20691c6ee609",
+      "name": "Query Workflow Settings",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        912,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $vars.TABLE_STATUTORY_DEADLINES || 'L9EoptHRpRqqpkJH' }}"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "case_id",
+              "condition": "ilike",
+              "keyValue": "={{ $(\"Normalize Request\").first().json.case_id }}"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "id": "e8f97a4b-86c1-464e-8c53-01c035ced616",
+      "name": "Query Statutory Deadlines",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        912,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $vars.TABLE_PERMISSION_MATRIX || '3NMXAONvK83MlMMj' }}"
+        },
+        "returnAll": true
+      },
+      "id": "5a911b7d-8fce-4ec5-8098-49c92c02a4c2",
+      "name": "Query Permission Matrix",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        912,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "err1",
+              "name": "success",
+              "type": "boolean",
+              "value": false
+            },
+            {
+              "id": "err2",
+              "name": "error",
+              "type": "string",
+              "value": "={{ \"Unrecognized table: \" + $(\"Normalize Request\").first().json.table }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d93b5b5e-b03d-46ac-afe0-9e0e197b4f38",
+      "name": "Unknown Table Error",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        816,
+        672
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Normalize Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Request": {
+      "main": [
+        [
+          {
+            "node": "Table Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Table Router": {
+      "main": [
+        [
+          {
+            "node": "Query Case Directory",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Query Workflow History",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Query Workflow Settings",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Query Statutory Deadlines",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Query Permission Matrix",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Unknown Table Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "versionId": "215872c5-16e5-4275-a49f-e51442fd2bab",
+  "meta": {
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp",
+    "instanceId": "1b7f2b8bd7379ce28884aabf2215f3c90ff32a7e4c4f1088ddd7ce0532074b6f"
+  },
+  "nodeGroups": [
+    {
+      "id": "grp-router",
+      "name": "Request Normalization & Routing",
+      "nodeIds": [
+        "bf578661-d404-4736-b25a-c417f1d5f06b",
+        "1554ff88-1f76-46dd-8dd4-849e46bf06fe"
+      ],
+      "description": "Normalizes input parameters and routes by target table"
+    },
+    {
+      "id": "grp-error",
+      "name": "Error Boundary",
+      "nodeIds": [
+        "d93b5b5e-b03d-46ac-afe0-9e0e197b4f38"
+      ],
+      "description": "Catches unrecognized table names with structured error"
+    }
+  ],
+  "id": "2MSMiBBcyhwal3eK",
+  "tags": []
+}

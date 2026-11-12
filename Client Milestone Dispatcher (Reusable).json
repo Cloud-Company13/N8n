@@ -1,0 +1,798 @@
+{
+  "name": "Client Milestone Dispatcher (Reusable)",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "case_id"
+            },
+            {
+              "name": "milestone_type"
+            },
+            {
+              "name": "client_name"
+            },
+            {
+              "name": "client_email"
+            },
+            {
+              "name": "advocate_name"
+            },
+            {
+              "name": "advocate_email"
+            },
+            {
+              "name": "advocate_id"
+            },
+            {
+              "name": "court_name"
+            },
+            {
+              "name": "hearing_date"
+            },
+            {
+              "name": "hearing_time"
+            },
+            {
+              "name": "triggered_by"
+            },
+            {
+              "name": "custom_remarks"
+            },
+            {
+              "name": "invoice_status"
+            },
+            {
+              "name": "invoice_amount",
+              "type": "number"
+            },
+            {
+              "name": "is_initial_assignment"
+            }
+          ]
+        }
+      },
+      "id": "14bf71fd-d2da-46bd-851f-72869f6417b2",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        96,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "rule-onboarding",
+                    "leftValue": "={{ ($json.milestone_type || '').toString().toLowerCase().trim() }}",
+                    "operator": {
+                      "operation": "equals",
+                      "type": "string"
+                    },
+                    "rightValue": "onboarding_welcome"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Welcome email"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "rule-paper-filed",
+                    "leftValue": "={{ ($json.milestone_type || '').toString().toLowerCase().trim() }}",
+                    "operator": {
+                      "operation": "equals",
+                      "type": "string"
+                    },
+                    "rightValue": "paper filed"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Paper filled email"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "rule-hearing-trial",
+                    "leftValue": "={{ ['hearing', 'under-trial', 'under trial', 'undertrial'].includes(($json.milestone_type || '').toString().toLowerCase().trim()) }}",
+                    "operator": {
+                      "operation": "true",
+                      "singleValue": true,
+                      "type": "boolean"
+                    },
+                    "rightValue": true
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Hearing email"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "rule-judgment",
+                    "leftValue": "={{ ['final judgment', 'final judgement', 'judgment', 'judgement'].includes(($json.milestone_type || '').toString().toLowerCase().trim()) }}",
+                    "operator": {
+                      "operation": "true",
+                      "singleValue": true,
+                      "type": "boolean"
+                    },
+                    "rightValue": true
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Final judgement email"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "none"
+        }
+      },
+      "id": "13180366-4c63-4966-b5ab-db13a9186757",
+      "name": "Route Milestone",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        432,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "sub-1",
+              "name": "email_subject",
+              "type": "string",
+              "value": "=⚖️ Welcome to Legal Services Firm — Case #{{ $('Execute Workflow Trigger').first().json.case_id }}"
+            },
+            {
+              "id": "sub-2",
+              "name": "email_body",
+              "type": "string",
+              "value": "=<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #1e293b; max-width: 620px; margin: 0 auto; border: 1px solid #cbd5e1; border-radius: 10px; overflow: hidden; background: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.06);\"><div style=\"background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); color: #ffffff; padding: 26px 28px; border-bottom: 3px solid #2563eb;\"><div style=\"font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; opacity: 0.85; margin-bottom: 4px; font-weight: 600;\">Legal Services &bull; Client Onboarding</div><h2 style=\"margin: 0; font-size: 22px; font-weight: 700; color: #ffffff;\">⚖️ Welcome to Our Law Firm</h2><p style=\"margin: 6px 0 0 0; opacity: 0.95; font-size: 14px;\">Case Reference: <strong style=\"color: #93c5fd;\">#{{ $('Execute Workflow Trigger').first().json.case_id }}</strong> &bull; Client: <strong>{{ $('Execute Workflow Trigger').first().json.client_name || 'Valued Client' }}</strong></p></div><div style=\"padding: 28px 28px 24px 28px;\"><p style=\"font-size: 15px; margin-top: 0; color: #0f172a;\">Dear <strong>{{ $('Execute Workflow Trigger').first().json.client_name || 'Valued Client' }}</strong>,</p><p style=\"font-size: 14px; line-height: 1.6; color: #334155; margin-bottom: 20px;\">Welcome to our legal practice! Your client registration has been successfully received, authenticated, and recorded in our central case directory.</p><div style=\"background-color: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 18px 20px; margin-bottom: 22px;\"><table border=\"0\" cellpadding=\"7\" style=\"width: 100%; border-collapse: collapse; font-size: 14px;\"><tr style=\"border-bottom: 1px solid #edf2f7;\"><td style=\"width: 38%; color: #64748b; font-weight: 500;\">Case Reference ID:</td><td><code style=\"font-size: 15px; font-weight: 700; color: #1e3a8a; background: #e0e7ff; padding: 3px 8px; border-radius: 4px;\">#{{ $('Execute Workflow Trigger').first().json.case_id }}</code></td></tr><tr style=\"border-bottom: 1px solid #edf2f7;\"><td style=\"color: #64748b; font-weight: 500;\">Client Full Name:</td><td><strong style=\"color: #0f172a;\">{{ $('Execute Workflow Trigger').first().json.client_name || 'Valued Client' }}</strong></td></tr><tr style=\"border-bottom: 1px solid #edf2f7;\"><td style=\"color: #64748b; font-weight: 500;\">Registered Email:</td><td><a href=\"mailto:{{ $('Execute Workflow Trigger').first().json.client_email }}\" style=\"color: #2563eb; text-decoration: none;\">{{ $('Execute Workflow Trigger').first().json.client_email }}</a></td></tr><tr style=\"border-bottom: 1px solid #edf2f7;\"><td style=\"color: #64748b; font-weight: 500;\">Onboarding Status:</td><td><span style=\"background: #dcfce7; color: #15803d; padding: 3px 10px; border-radius: 4px; font-weight: 700; font-size: 12px; text-transform: uppercase;\">✅ Registered &amp; Active</span></td></tr><tr><td style=\"color: #64748b; font-weight: 500;\">Initial Legal Stage:</td><td><span style=\"color: #0f172a; font-weight: 600;\">Paper Filed / Pleading Preparation</span></td></tr></table></div><div style=\"background-color: #f0fdf4; border-left: 4px solid #16a34a; border-radius: 4px; padding: 14px 18px; margin-bottom: 22px;\"><h4 style=\"margin: 0 0 8px 0; color: #15803d; font-size: 14px; font-weight: 700;\">📋 What Happens Next:</h4><ol style=\"margin: 0; padding-left: 18px; color: #166534; font-size: 13px; line-height: 1.6;\"><li style=\"margin-bottom: 4px;\">Our administration and legal research team will finalize initial docketing and review.</li><li style=\"margin-bottom: 4px;\">A dedicated legal advocate will be assigned to represent your matter in court.</li><li>You will receive automated real-time notifications for every court date, hearing schedule, and milestone update.</li></ol></div><div style=\"text-align: center; margin: 26px 0 18px 0;\"><a href=\"{{ $vars.CLIENT_PORTAL_URL }}\" target=\"_blank\" style=\"display: inline-block; background-color: #1a73e8; color: #ffffff; padding: 13px 28px; text-decoration: none; border-radius: 6px; font-weight: 700; font-size: 14px; box-shadow: 0 2px 4px rgba(26,115,232,0.3);\">📱 Access Client Portal &amp; View Case ➔</a></div><hr style=\"border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0 16px 0;\"/><p style=\"font-size: 12px; color: #94a3b8; margin: 0; text-align: center;\">Legal Practice Management System &bull; Privileged &amp; Confidential Attorney-Client Communication</p></div></div>"
+            },
+            {
+              "id": "sub-3",
+              "name": "target_email",
+              "type": "string",
+              "value": "={{ $('Execute Workflow Trigger').first().json.client_email }}"
+            },
+            {
+              "id": "sub-4",
+              "name": "case_id",
+              "type": "string",
+              "value": "={{ $('Execute Workflow Trigger').first().json.case_id }}"
+            },
+            {
+              "id": "sub-5",
+              "name": "client_name",
+              "type": "string",
+              "value": "={{ $('Execute Workflow Trigger').first().json.client_name }}"
+            },
+            {
+              "id": "sub-6",
+              "name": "milestone_type",
+              "type": "string",
+              "value": "onboarding_welcome"
+            },
+            {
+              "id": "sub-7",
+              "name": "triggered_by",
+              "type": "string",
+              "value": "={{ $('Execute Workflow Trigger').first().json.triggered_by || 'system' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "37c816b6-af5e-4f2f-9eac-517c9cba5ad9",
+      "name": "Prepare Welcome Email",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        656,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.target_email }}",
+        "subject": "={{ $json.email_subject }}",
+        "message": "={{ $json.email_body }}",
+        "options": {
+          "ccList": "={{ $('Execute Workflow Trigger').first().json.advocate_email || '' }}"
+        }
+      },
+      "id": "e34a6ed3-21dc-4ee0-95d8-50b979061ee0",
+      "name": "Send Milestone Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        400
+      ],
+      "webhookId": "c44e2fe9-4844-4e76-8a3b-e12ab5591c6c",
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "sVmGKpNsTs1T3jnJ",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $vars.TABLE_WORKFLOW_HISTORY || 'zLUIArHa9Po3oyoW' }}"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "schema": [
+            {
+              "displayName": "invoice_id",
+              "id": "invoice_id",
+              "type": "string"
+            },
+            {
+              "displayName": "case_id",
+              "id": "case_id",
+              "type": "string"
+            },
+            {
+              "displayName": "requester_name",
+              "id": "requester_name",
+              "type": "string"
+            },
+            {
+              "displayName": "requester_role",
+              "id": "requester_role",
+              "type": "string"
+            },
+            {
+              "displayName": "decision",
+              "id": "decision",
+              "type": "string"
+            },
+            {
+              "displayName": "decision_by",
+              "id": "decision_by",
+              "type": "string"
+            },
+            {
+              "displayName": "updated_by",
+              "id": "updated_by",
+              "type": "string"
+            },
+            {
+              "displayName": "outcome_status",
+              "id": "outcome_status",
+              "type": "string"
+            },
+            {
+              "displayName": "final_status",
+              "id": "final_status",
+              "type": "string"
+            },
+            {
+              "displayName": "execution_id",
+              "id": "execution_id",
+              "type": "string"
+            },
+            {
+              "displayName": "invoice_status",
+              "id": "invoice_status",
+              "type": "string"
+            },
+            {
+              "displayName": "amount",
+              "id": "amount",
+              "type": "number"
+            }
+          ],
+          "value": {
+            "case_id": "={{ $('Execute Workflow Trigger').first().json.case_id }}",
+            "decision": "milestone_update",
+            "decision_by": "={{ $('Execute Workflow Trigger').first().json.triggered_by || 'Firm Administrator' }}",
+            "execution_id": "={{ $execution.id }}",
+            "final_status": "email_sent",
+            "outcome_status": "={{ 'Stage: ' + $('Execute Workflow Trigger').first().json.milestone_type + ($('Execute Workflow Trigger').first().json.court_name ? (' in ' + $('Execute Workflow Trigger').first().json.court_name) : '') + ($('Execute Workflow Trigger').first().json.hearing_date ? (' on ' + $('Execute Workflow Trigger').first().json.hearing_date + ($('Execute Workflow Trigger').first().json.hearing_time ? ' at ' + $('Execute Workflow Trigger').first().json.hearing_time : '')) : '') + ($('Execute Workflow Trigger').first().json.custom_remarks ? (' — ' + $('Execute Workflow Trigger').first().json.custom_remarks) : '') }}",
+            "requester_name": "={{ $('Execute Workflow Trigger').first().json.client_name || 'Client' }}",
+            "requester_role": "client",
+            "invoice_id": "={{ $('Execute Workflow Trigger').first().json.invoice_id || null }}",
+            "updated_by": "={{ ($('Execute Workflow Trigger').first().json.triggered_by || '').toString().toLowerCase().includes('client') ? 'client' : 'firm administrator' }}",
+            "amount": "={{ $('Execute Workflow Trigger').first().json.invoice_amount !== undefined && $('Execute Workflow Trigger').first().json.invoice_amount !== '' ? Number($('Execute Workflow Trigger').first().json.invoice_amount) : undefined }}",
+            "invoice_status": "={{ $('Execute Workflow Trigger').first().json.invoice_status || 'pending' }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "2d21f0b3-7ad0-400d-944e-1bb2d2db30f0",
+      "name": "Log Milestone to History",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1104,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "resp-1",
+              "name": "success",
+              "type": "boolean",
+              "value": true
+            },
+            {
+              "id": "resp-2",
+              "name": "milestone_type",
+              "type": "string",
+              "value": "={{ $('Execute Workflow Trigger').first().json.milestone_type }}"
+            },
+            {
+              "id": "resp-3",
+              "name": "case_id",
+              "type": "string",
+              "value": "={{ $('Execute Workflow Trigger').first().json.case_id }}"
+            },
+            {
+              "id": "resp-4",
+              "name": "message",
+              "type": "string",
+              "value": "Milestone notification sent and recorded in history."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "dde52e3a-6113-446a-a5b8-6bda5383de63",
+      "name": "Return Success Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1328,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "pf-1",
+              "name": "email_subject",
+              "type": "string",
+              "value": "={{ $('Execute Workflow Trigger').first().json.is_initial_assignment ? ('Legal Services Update: Paper Filed & Counsel Assigned details — Case #' + $('Execute Workflow Trigger').first().json.case_id) : ('Legal Services Update: Proceeding & Schedule Updated — Case #' + $('Execute Workflow Trigger').first().json.case_id) }}"
+            },
+            {
+              "id": "pf-2",
+              "name": "email_body",
+              "type": "string",
+              "value": "=<div style='font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;'>\n  <div style='background-color: #1a73e8; color: #ffffff; padding: 20px; text-align: center;'>\n    <h2 style='margin: 0; font-size: 20px;'>{{ $('Execute Workflow Trigger').first().json.is_initial_assignment ? '⚖️ Legal Services Update: Paper Filed & Counsel Assigned details' : '⚖️ Legal Services Update: Proceeding & Schedule Updated' }}</h2>\n    <p style='margin: 5px 0 0 0; opacity: 0.9; font-size: 14px;'>Case Reference #{{ $('Execute Workflow Trigger').first().json.case_id }}</p>\n  </div>\n  <div style='padding: 24px;'>\n    <p>Dear <strong>{{ $('Execute Workflow Trigger').first().json.client_name || 'Valued Client' }}</strong>,</p>\n    <p>{{ $('Execute Workflow Trigger').first().json.is_initial_assignment ? 'Please find below the confirmed court filing and assigned legal counsel details for your legal matter:' : 'Please find below the updated court filing and proceeding schedule for your legal matter:' }}</p>\n    \n    <div style='background-color: #f8f9fa; border-left: 4px solid #1a73e8; padding: 14px; margin: 18px 0; border-radius: 4px;'>\n      <table border='0' cellpadding='6' style='width: 100%; border-collapse: collapse; font-size: 14px;'>\n        <tr><td style='width: 38%; color: #64748b;'><strong>Case Reference ID:</strong></td><td><code style='font-size: 15px; font-weight: bold; color: #1a73e8;'>{{ $('Execute Workflow Trigger').first().json.case_id }}</code></td></tr>\n        <tr><td style='color: #64748b;'><strong>Case Status:</strong></td><td><span style='background: #e8f0fe; color: #1a73e8; padding: 2px 8px; border-radius: 4px; font-weight: bold;'>{{ $('Execute Workflow Trigger').first().json.milestone_type || 'paper filed' }}</span></td></tr>\n        <tr><td style='color: #64748b;'><strong>Assigned Dedicated Advocate:</strong></td><td><strong style='color: #0f172a;'>{{ $('Execute Workflow Trigger').first().json.advocate_name || 'Assigned Counsel' }}</strong></td></tr>\n        {{ $('Execute Workflow Trigger').first().json.court_name ? '<tr><td style=\"color: #64748b;\"><strong>Court / Bench:</strong></td><td><strong style=\"color: #0f172a;\">🏛️ ' + $('Execute Workflow Trigger').first().json.court_name + '</strong></td></tr>' : '' }}\n        {{ $('Execute Workflow Trigger').first().json.hearing_date ? '<tr><td style=\"color: #64748b;\"><strong>Filing / Court Date:</strong></td><td><strong style=\"color: #1a73e8; font-size: 15px;\">📅 ' + $('Execute Workflow Trigger').first().json.hearing_date + '</strong></td></tr>' : '' }}\n        {{ $('Execute Workflow Trigger').first().json.hearing_time ? '<tr><td style=\"color: #64748b;\"><strong>Time:</strong></td><td><strong style=\"color: #1a73e8; font-size: 15px;\">⏰ ' + $('Execute Workflow Trigger').first().json.hearing_time + '</strong></td></tr>' : '' }}\n      </table>\n    </div>\n\n    {{ $('Execute Workflow Trigger').first().json.custom_remarks ? '<div style=\"background-color: #f1f3f4; padding: 12px 14px; border-radius: 4px; margin-bottom: 16px;\"><strong style=\"color: #202124;\">Advocate Remarks:</strong><br/><span style=\"color: #4a5568;\">' + $('Execute Workflow Trigger').first().json.custom_remarks + '</span></div>' : '' }}\n\n    <div style='text-align: center; margin: 25px 0 15px 0;'>\n      <a href='{{ $vars.CLIENT_PORTAL_URL }}' target='_blank' style='background-color: #1a73e8; color: #ffffff; padding: 12px 22px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;'>📱 View Case in Client Portal</a>\n    </div>\n\n    <hr style='border: 0; border-top: 1px solid #eee; margin: 20px 0;'/>\n    <p style='font-size: 12px; color: #777; margin: 0; text-align: center;'>Legal Services Firm Administration Team | All communications are privileged & confidential.</p>\n  </div>\n</div>"
+            },
+            {
+              "id": "pf-3",
+              "name": "target_email",
+              "type": "string",
+              "value": "={{ $('Execute Workflow Trigger').first().json.client_email }}"
+            },
+            {
+              "id": "pf-4",
+              "name": "case_id",
+              "type": "string",
+              "value": "={{ $('Execute Workflow Trigger').first().json.case_id }}"
+            },
+            {
+              "id": "pf-5",
+              "name": "client_name",
+              "type": "string",
+              "value": "={{ $('Execute Workflow Trigger').first().json.client_name }}"
+            },
+            {
+              "id": "pf-6",
+              "name": "milestone_type",
+              "type": "string",
+              "value": "={{ $('Execute Workflow Trigger').first().json.milestone_type || 'paper filed' }}"
+            },
+            {
+              "id": "pf-7",
+              "name": "advocate_name",
+              "type": "string",
+              "value": "={{ $('Execute Workflow Trigger').first().json.advocate_name || '' }}"
+            },
+            {
+              "id": "pf-9",
+              "name": "triggered_by",
+              "type": "string",
+              "value": "={{ $('Execute Workflow Trigger').first().json.triggered_by || 'Firm Administrator' }}"
+            },
+            {
+              "id": "pf-court",
+              "name": "court_name",
+              "type": "string",
+              "value": "={{ $('Execute Workflow Trigger').first().json.court_name || '' }}"
+            },
+            {
+              "id": "pf-hdate",
+              "name": "hearing_date",
+              "type": "string",
+              "value": "={{ $('Execute Workflow Trigger').first().json.hearing_date || '' }}"
+            },
+            {
+              "id": "pf-htime",
+              "name": "hearing_time",
+              "type": "string",
+              "value": "={{ $('Execute Workflow Trigger').first().json.hearing_time || '' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e213e94b-3278-4762-b6bd-226a3d315bcf",
+      "name": "Prepare Paper Filed Email",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        656,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "h-1",
+              "name": "email_subject",
+              "type": "string",
+              "value": "=Legal Services Update: Hearing Scheduled details — Case #{{ $('Execute Workflow Trigger').first().json.case_id }}"
+            },
+            {
+              "id": "h-2",
+              "name": "email_body",
+              "type": "string",
+              "value": "=<div style='font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;'>\n  <div style='background-color: #0284c7; color: #ffffff; padding: 20px; text-align: center;'>\n    <h2 style='margin: 0; font-size: 20px;'>⚖️ Legal Services Update: Hearing Scheduled details</h2>\n    <p style='margin: 5px 0 0 0; opacity: 0.9; font-size: 14px;'>Case Reference #{{ $('Execute Workflow Trigger').first().json.case_id }}</p>\n  </div>\n  <div style='padding: 24px;'>\n    <p>Dear <strong>{{ $('Execute Workflow Trigger').first().json.client_name || 'Valued Client' }}</strong>,</p>\n    <p>Please find below the official hearing notice and scheduled court listing for your legal matter:</p>\n    \n    <div style='background-color: #f0f9ff; border-left: 4px solid #0284c7; padding: 14px; margin: 18px 0; border-radius: 4px;'>\n      <table border='0' cellpadding='6' style='width: 100%; border-collapse: collapse; font-size: 14px;'>\n        <tr><td style='width: 38%; color: #64748b;'><strong>Case Reference ID:</strong></td><td><code style='font-size: 15px; font-weight: bold; color: #0284c7;'>{{ $('Execute Workflow Trigger').first().json.case_id }}</code></td></tr>\n        <tr><td style='color: #64748b;'><strong>Case Status:</strong></td><td><span style='background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 4px; font-weight: bold;'>{{ $('Execute Workflow Trigger').first().json.milestone_type || 'hearing' }}</span></td></tr>\n        <tr><td style='color: #64748b;'><strong>Assigned Dedicated Advocate:</strong></td><td><strong style='color: #0f172a;'>{{ $('Execute Workflow Trigger').first().json.advocate_name || 'Assigned Counsel' }}</strong></td></tr>\n        {{ $('Execute Workflow Trigger').first().json.court_name ? '<tr><td style=\"color: #64748b;\"><strong>Court / Bench:</strong></td><td><strong style=\"color: #0f172a;\">🏛️ ' + $('Execute Workflow Trigger').first().json.court_name + '</strong></td></tr>' : '' }}\n        {{ $('Execute Workflow Trigger').first().json.hearing_date ? '<tr><td style=\"color: #64748b;\"><strong>Hearing Date:</strong></td><td><strong style=\"color: #0284c7; font-size: 15px;\">📅 ' + $('Execute Workflow Trigger').first().json.hearing_date + '</strong></td></tr>' : '' }}\n        {{ $('Execute Workflow Trigger').first().json.hearing_time ? '<tr><td style=\"color: #64748b;\"><strong>Hearing Time:</strong></td><td><strong style=\"color: #0284c7; font-size: 15px;\">⏰ ' + $('Execute Workflow Trigger').first().json.hearing_time + '</strong></td></tr>' : '' }}\n      </table>\n    </div>\n\n    {{ $('Execute Workflow Trigger').first().json.custom_remarks ? '<div style=\"background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 12px 16px; border-radius: 6px; margin-bottom: 16px;\"><strong style=\"color: #334155;\">Advocate Notes / Instructions:</strong><br/><span style=\"color: #475569;\">' + $('Execute Workflow Trigger').first().json.custom_remarks + '</span></div>' : '' }}\n\n    <div style='text-align: center; margin: 25px 0 15px 0;'>\n      <a href='{{ $vars.CLIENT_PORTAL_URL }}' target='_blank' style='background-color: #0284c7; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;'>📱 View Hearing Details on Client Portal</a>\n    </div>\n\n    <hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;'/>\n    <p style='font-size: 12px; color: #94a3b8; margin: 0; text-align: center;'>Legal Practice Management System &bull; Privileged & Confidential Communication</p>\n  </div>\n</div>"
+            },
+            {
+              "id": "h-3",
+              "name": "target_email",
+              "type": "string",
+              "value": "={{ $('Execute Workflow Trigger').first().json.client_email }}"
+            },
+            {
+              "id": "h-4",
+              "name": "case_id",
+              "type": "string",
+              "value": "={{ $('Execute Workflow Trigger').first().json.case_id }}"
+            },
+            {
+              "id": "h-5",
+              "name": "client_name",
+              "type": "string",
+              "value": "={{ $('Execute Workflow Trigger').first().json.client_name }}"
+            },
+            {
+              "id": "h-6",
+              "name": "milestone_type",
+              "type": "string",
+              "value": "={{ $('Execute Workflow Trigger').first().json.milestone_type || 'hearing' }}"
+            },
+            {
+              "id": "h-7",
+              "name": "advocate_name",
+              "type": "string",
+              "value": "={{ $('Execute Workflow Trigger').first().json.advocate_name || '' }}"
+            },
+            {
+              "id": "h-9",
+              "name": "court_name",
+              "type": "string",
+              "value": "={{ $('Execute Workflow Trigger').first().json.court_name || '' }}"
+            },
+            {
+              "id": "h-10",
+              "name": "hearing_date",
+              "type": "string",
+              "value": "={{ $('Execute Workflow Trigger').first().json.hearing_date || '' }}"
+            },
+            {
+              "id": "h-11",
+              "name": "hearing_time",
+              "type": "string",
+              "value": "={{ $('Execute Workflow Trigger').first().json.hearing_time || '' }}"
+            },
+            {
+              "id": "h-12",
+              "name": "triggered_by",
+              "type": "string",
+              "value": "={{ $('Execute Workflow Trigger').first().json.triggered_by || 'Firm Administrator' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "99111c80-8e0e-4eb4-bff1-e4dd2a195bf9",
+      "name": "Prepare Hearing Email",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        656,
+        496
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "j-1",
+              "name": "email_subject",
+              "type": "string",
+              "value": "=Legal Services Update: Final Judgment Scheduled details — Case #{{ $('Execute Workflow Trigger').first().json.case_id }}"
+            },
+            {
+              "id": "j-2",
+              "name": "email_body",
+              "type": "string",
+              "value": "=<div style='font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;'>\n  <div style='background-color: #15803d; color: #ffffff; padding: 20px; text-align: center;'>\n    <h2 style='margin: 0; font-size: 20px;'>🏛️ Legal Services Update: Final Judgment Scheduled details</h2>\n    <p style='margin: 5px 0 0 0; opacity: 0.9; font-size: 14px;'>Case Reference #{{ $('Execute Workflow Trigger').first().json.case_id }}</p>\n  </div>\n  <div style='padding: 24px;'>\n    <p>Dear <strong>{{ $('Execute Workflow Trigger').first().json.client_name || 'Valued Client' }}</strong>,</p>\n    <p>Please find below the official notice and scheduled court listing for the <strong>Final Judgment / Decree Pronouncement</strong> in your legal matter:</p>\n    \n    <div style='background-color: #f0fdf4; border-left: 4px solid #15803d; padding: 14px; margin: 18px 0; border-radius: 4px;'>\n      <table border='0' cellpadding='6' style='width: 100%; border-collapse: collapse; font-size: 14px;'>\n        <tr><td style='width: 38%; color: #64748b;'><strong>Case Reference ID:</strong></td><td><code style='font-size: 15px; font-weight: bold; color: #15803d;'>{{ $('Execute Workflow Trigger').first().json.case_id }}</code></td></tr>\n        <tr><td style='color: #64748b;'><strong>Case Status:</strong></td><td><span style='background: #dcfce7; color: #15803d; padding: 2px 8px; border-radius: 4px; font-weight: bold;'>{{ $('Execute Workflow Trigger').first().json.milestone_type || 'final judgment' }}</span></td></tr>\n        <tr><td style='color: #64748b;'><strong>Assigned Dedicated Advocate:</strong></td><td><strong style='color: #0f172a;'>{{ $('Execute Workflow Trigger').first().json.advocate_name || 'Assigned Counsel' }}</strong></td></tr>\n        {{ $('Execute Workflow Trigger').first().json.court_name ? '<tr><td style=\"color: #64748b;\"><strong>Court / Bench:</strong></td><td><strong style=\"color: #0f172a;\">🏛️ ' + $('Execute Workflow Trigger').first().json.court_name + '</strong></td></tr>' : '' }}\n        {{ $('Execute Workflow Trigger').first().json.hearing_date ? '<tr><td style=\"color: #64748b;\"><strong>Pronouncement Date:</strong></td><td><strong style=\"color: #15803d; font-size: 15px;\">📅 ' + $('Execute Workflow Trigger').first().json.hearing_date + '</strong></td></tr>' : '' }}\n        {{ $('Execute Workflow Trigger').first().json.hearing_time ? '<tr><td style=\"color: #64748b;\"><strong>Pronouncement Time:</strong></td><td><strong style=\"color: #15803d; font-size: 15px;\">⏰ ' + $('Execute Workflow Trigger').first().json.hearing_time + '</strong></td></tr>' : '' }}\n      </table>\n    </div>\n\n    {{ $('Execute Workflow Trigger').first().json.custom_remarks ? '<div style=\"background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 12px 16px; border-radius: 6px; margin-bottom: 16px;\"><strong style=\"color: #334155;\">Advocate Remarks / Instructions:</strong><br/><span style=\"color: #475569;\">' + $('Execute Workflow Trigger').first().json.custom_remarks + '</span></div>' : '' }}\n\n    <div style='text-align: center; margin: 25px 0 15px 0;'>\n      <a href='{{ $vars.CLIENT_PORTAL_URL }}' target='_blank' style='background-color: #15803d; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;'>📱 View Judgment Details on Client Portal</a>\n    </div>\n\n    <hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;'/>\n    <p style='font-size: 12px; color: #94a3b8; margin: 0; text-align: center;'>Legal Practice Management System &bull; Privileged & Confidential Communication</p>\n  </div>\n</div>"
+            },
+            {
+              "id": "j-3",
+              "name": "target_email",
+              "type": "string",
+              "value": "={{ $('Execute Workflow Trigger').first().json.client_email }}"
+            },
+            {
+              "id": "j-4",
+              "name": "case_id",
+              "type": "string",
+              "value": "={{ $('Execute Workflow Trigger').first().json.case_id }}"
+            },
+            {
+              "id": "j-5",
+              "name": "client_name",
+              "type": "string",
+              "value": "={{ $('Execute Workflow Trigger').first().json.client_name }}"
+            },
+            {
+              "id": "j-6",
+              "name": "milestone_type",
+              "type": "string",
+              "value": "={{ $('Execute Workflow Trigger').first().json.milestone_type || 'final judgment' }}"
+            },
+            {
+              "id": "j-7",
+              "name": "advocate_name",
+              "type": "string",
+              "value": "={{ $('Execute Workflow Trigger').first().json.advocate_name || '' }}"
+            },
+            {
+              "id": "j-9",
+              "name": "court_name",
+              "type": "string",
+              "value": "={{ $('Execute Workflow Trigger').first().json.court_name || '' }}"
+            },
+            {
+              "id": "j-10",
+              "name": "hearing_date",
+              "type": "string",
+              "value": "={{ $('Execute Workflow Trigger').first().json.hearing_date || '' }}"
+            },
+            {
+              "id": "j-11",
+              "name": "hearing_time",
+              "type": "string",
+              "value": "={{ $('Execute Workflow Trigger').first().json.hearing_time || '' }}"
+            },
+            {
+              "id": "j-12",
+              "name": "triggered_by",
+              "type": "string",
+              "value": "={{ $('Execute Workflow Trigger').first().json.triggered_by || 'Firm Administrator' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4f9ddb04-7621-4978-99b7-17982de2d4e3",
+      "name": "Prepare Final Judgment Email",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        656,
+        688
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Route Milestone",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Milestone": {
+      "main": [
+        [
+          {
+            "node": "Prepare Welcome Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Paper Filed Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Hearing Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Final Judgment Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Welcome Email": {
+      "main": [
+        [
+          {
+            "node": "Send Milestone Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Milestone Email": {
+      "main": [
+        [
+          {
+            "node": "Log Milestone to History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Milestone to History": {
+      "main": [
+        [
+          {
+            "node": "Return Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Paper Filed Email": {
+      "main": [
+        [
+          {
+            "node": "Send Milestone Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Hearing Email": {
+      "main": [
+        [
+          {
+            "node": "Send Milestone Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Final Judgment Email": {
+      "main": [
+        [
+          {
+            "node": "Send Milestone Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true,
+    "errorWorkflow": "Dvao8HFN2GnGuaQZ"
+  },
+  "versionId": "0c1f058d-2bb6-4961-b19a-1fa307f7ddfb",
+  "meta": {
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp",
+    "instanceId": "1b7f2b8bd7379ce28884aabf2215f3c90ff32a7e4c4f1088ddd7ce0532074b6f"
+  },
+  "nodeGroups": [
+    {
+      "id": "0725bcd9-fa38-4a34-9d41-b32042e932d0",
+      "name": "Milestone Dispatch & Audit Trail Pipeline",
+      "nodeIds": [
+        "e34a6ed3-21dc-4ee0-95d8-50b979061ee0",
+        "2d21f0b3-7ad0-400d-944e-1bb2d2db30f0",
+        "dde52e3a-6113-446a-a5b8-6bda5383de63"
+      ],
+      "description": "Sends branded milestone emails, records milestone events in workflow history, and returns execution summary."
+    }
+  ],
+  "id": "p0eO43HcBTuB8SaX",
+  "tags": []
+}

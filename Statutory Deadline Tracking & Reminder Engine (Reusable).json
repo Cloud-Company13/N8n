@@ -1,0 +1,496 @@
+{
+  "name": "Statutory Deadline Tracking & Reminder Engine (Reusable)",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "dca23950-6723-4773-b568-79a0412dba3f",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -416,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ ($json.action || 'check').toString().toLowerCase().trim() }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "rightValue": "register",
+              "id": "38abbaf6-250f-4582-a86b-045bfa4b482a"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "3ba46fcb-ea9f-4ae7-83c8-2d7dfa674136",
+      "name": "Check Action",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -192,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f-1",
+              "name": "case_id",
+              "type": "number",
+              "value": "={{ Number($('Check Action').first().json.case_id) }}"
+            },
+            {
+              "id": "f-2",
+              "name": "deadline_name",
+              "type": "string",
+              "value": "={{ $json.rule_name || $('Check Action').first().json.deadline_name }}"
+            },
+            {
+              "id": "f-3",
+              "name": "due_date",
+              "type": "string",
+              "value": "={{ $now.plus({ days: Number($json.statutory_days || $vars.DEFAULT_STATUTORY_LIMITATION_DAYS) }).toFormat('dd/MM/yyyy') }}"
+            },
+            {
+              "id": "f-4",
+              "name": "status",
+              "type": "string",
+              "value": "active"
+            },
+            {
+              "id": "f-5",
+              "name": "assigned_advocate_email",
+              "type": "string",
+              "value": "={{ $('Check Action').first().json.advocate_email || $vars.FIRM_ADMIN_EMAIL }}"
+            },
+            {
+              "id": "f-6",
+              "name": "alert_days",
+              "type": "number",
+              "value": "={{ Number($json.alert_days || $vars.STATUTORY_ALERT_LEAD_DAYS) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "70b22886-20b5-4ed4-9787-2a91cac902ab",
+      "name": "Set Deadline Parameters",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        320,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $vars.TABLE_STATUTORY_DEADLINES || 'L9EoptHRpRqqpkJH' }}"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "case_id": "={{ $json.case_id }}",
+            "deadline_name": "={{ $json.deadline_name }}",
+            "due_date": "={{ $json.due_date }}",
+            "status": "active",
+            "assigned_advocate_email": "={{ $json.assigned_advocate_email }}",
+            "alert_days": "={{ $json.alert_days }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "c11349ad-47b3-4358-98b9-c4039bb368ff",
+      "name": "Insert Statutory Deadline",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        544,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "res-1",
+              "name": "success",
+              "type": "boolean",
+              "value": true
+            },
+            {
+              "id": "res-2",
+              "name": "case_id",
+              "type": "number",
+              "value": "={{ $json.case_id }}"
+            },
+            {
+              "id": "res-3",
+              "name": "deadline_name",
+              "type": "string",
+              "value": "={{ $json.deadline_name }}"
+            },
+            {
+              "id": "res-4",
+              "name": "due_date",
+              "type": "string",
+              "value": "={{ $json.due_date }}"
+            },
+            {
+              "id": "res-5",
+              "name": "status",
+              "type": "string",
+              "value": "={{ $json.status }}"
+            },
+            {
+              "id": "res-6",
+              "name": "message",
+              "type": "string",
+              "value": "Statutory deadline registered successfully"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4c028e49-1b92-4714-b830-e9888e50d3e5",
+      "name": "Format Register Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        768,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $vars.TABLE_STATUTORY_DEADLINES || 'L9EoptHRpRqqpkJH' }}"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "status",
+              "keyValue": "active"
+            }
+          ]
+        },
+        "limit": 100
+      },
+      "id": "36a0acfb-b1e5-419b-b54c-c201a85d4e17",
+      "name": "Fetch Active Deadlines",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        192,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ DateTime.fromFormat($json.due_date, 'dd/MM/yyyy').toMillis() }}",
+              "operator": {
+                "operation": "lte",
+                "type": "number"
+              },
+              "rightValue": "={{ $now.plus({ days: Number($json.alert_days || $vars.STATUTORY_ALERT_LEAD_DAYS) }).toMillis() }}"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "61bd4cc8-fdb2-4e2f-9765-100c85de87c9",
+      "name": "Is Deadline Expiring Soon",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        624,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.assigned_advocate_email || 'sahil.soni@trootech.com' }}",
+        "subject": "={{ '[STATUTORY DEADLINE ALERT] Filing Due for Case #' + $json.case_id + ' (' + $json.deadline_name + ')' }}",
+        "message": "={{ '<div style=\"font-family: Arial, sans-serif; line-height: 1.6; color: #1e293b; max-width: 600px; margin: 0 auto; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;\"><div style=\"background-color: #ea580c; color: #ffffff; padding: 20px 24px;\"><h2 style=\"margin: 0; font-size: 20px; font-weight: 700;\">⚖️ Statutory Filing Limitation Alert</h2><p style=\"margin: 6px 0 0 0; opacity: 0.9; font-size: 14px;\">Case Reference: <strong>#' + $json.case_id + '</strong></p></div><div style=\"padding: 24px;\"><p>Dear Counsel,</p><p>This is a formal reminder regarding the upcoming statutory limitation cutoff for <strong>Case #' + $json.case_id + '</strong>:</p><div style=\"background-color: #f8fafc; border-left: 4px solid #ea580c; padding: 16px; margin: 18px 0; border-radius: 4px;\"><table border=\"0\" cellpadding=\"6\" style=\"width: 100%; border-collapse: collapse; font-size: 14px;\"><tr><td style=\"width: 35%; color: #64748b;\"><strong>Deadline Type:</strong></td><td><strong style=\"color: #0f172a;\">' + $json.deadline_name + '</strong></td></tr><tr><td style=\"color: #64748b;\"><strong>Due Date:</strong></td><td><strong style=\"color: #dc2626;\">📅 ' + $json.due_date + '</strong></td></tr><tr><td style=\"color: #64748b;\"><strong>Assigned Advocate:</strong></td><td><strong style=\"color: #0f172a;\">' + $json.assigned_advocate_email + '</strong></td></tr></table></div><hr style=\"border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;\"/><p style=\"font-size: 12px; color: #64748b; margin: 0; text-align: center;\">Legal Practice Management System &bull; Privileged & Confidential Notice</p></div></div>' }}",
+        "options": {
+          "ccList": "={{ $vars.FIRM_ADMIN_EMAIL }}"
+        }
+      },
+      "id": "bb0a99ea-4f4d-4c43-8d19-a9e0e6f37159",
+      "name": "Send Statutory Deadline Alert",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        848,
+        240
+      ],
+      "webhookId": "25850bf4-b5f6-4c46-b795-481d2b21363d",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "sVmGKpNsTs1T3jnJ",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $vars.TABLE_WORKFLOW_HISTORY || 'zLUIArHa9Po3oyoW' }}"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "case_id": "={{ $('Is Deadline Expiring Soon').item.json.case_id }}",
+            "invoice_id": "={{ 'DEADLINE-' + $('Is Deadline Expiring Soon').item.json.case_id }}",
+            "decision": "statutory_deadline_alert_sent",
+            "decision_by": "Automated Schedule",
+            "final_status": "alert_dispatched",
+            "outcome_status": "={{ $('Is Deadline Expiring Soon').item.json.deadline_name + ' alert sent to ' + $('Is Deadline Expiring Soon').item.json.assigned_advocate_email + ' | Due: ' + $('Is Deadline Expiring Soon').item.json.due_date }}",
+            "requester_name": "Statutory Engine",
+            "requester_role": "system",
+            "updated_by": "deadline-tracker"
+          }
+        },
+        "options": {}
+      },
+      "id": "96426b5e-b9db-4c32-9230-cb102c7e54a1",
+      "name": "Log Notice to History",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1072,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "id": "e37ffbc2-de7c-4b37-8603-0feaaa78d1c0",
+      "name": "Daily Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -192,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const trig = $('Check Action').first().json || {};\nconst deadlineName = (trig.deadline_name || 'Written Statement').toString().trim();\nconst ruleKey = deadlineName.toLowerCase();\n\n// Baseline default rules using registered variables\nconst defaultRules = {\n  \"written statement\": {\n    statutory_days: Number($vars.DEFAULT_STATUTORY_LIMITATION_DAYS || 30),\n    alert_days: Number($vars.STATUTORY_ALERT_LEAD_DAYS || 15)\n  },\n  \"rejoinder / reply\": {\n    statutory_days: 14,\n    alert_days: 7\n  }\n};\n\nlet rules = defaultRules;\nif ($vars.STATUTORY_RULES_CONFIG) {\n  try {\n    const parsed = typeof $vars.STATUTORY_RULES_CONFIG === 'string'\n      ? JSON.parse($vars.STATUTORY_RULES_CONFIG)\n      : $vars.STATUTORY_RULES_CONFIG;\n    if (parsed && typeof parsed === 'object') {\n      rules = parsed;\n    }\n  } catch (e) {\n    rules = defaultRules;\n  }\n}\n\nlet matched = null;\nfor (const [name, rule] of Object.entries(rules)) {\n  if (name.toLowerCase() === ruleKey) {\n    matched = rule;\n    break;\n  }\n}\n\nconst statutoryDays = Number(matched?.statutory_days || $vars.DEFAULT_STATUTORY_LIMITATION_DAYS || 30);\nconst alertDays = Number(matched?.alert_days || $vars.STATUTORY_ALERT_LEAD_DAYS || 15);\n\nreturn [{\n  json: {\n    rule_name: deadlineName,\n    statutory_days: statutoryDays,\n    alert_days: alertDays\n  }\n}];"
+      },
+      "id": "8253642f-14be-41cf-a47e-29d865497dae",
+      "name": "Resolve Statutory Rule",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        96,
+        0
+      ]
+    }
+  ],
+  "pinData": {
+    "Execute Workflow Trigger": [
+      {
+        "json": {
+          "action": "register",
+          "case_id": 332312,
+          "deadline_name": "Written Statement",
+          "advocate_email": "sahil.soni@trootech.com"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Check Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Action": {
+      "main": [
+        [
+          {
+            "node": "Resolve Statutory Rule",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fetch Active Deadlines",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Deadline Parameters": {
+      "main": [
+        [
+          {
+            "node": "Insert Statutory Deadline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Statutory Deadline": {
+      "main": [
+        [
+          {
+            "node": "Format Register Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Active Deadlines": {
+      "main": [
+        [
+          {
+            "node": "Is Deadline Expiring Soon",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Deadline Expiring Soon": {
+      "main": [
+        [
+          {
+            "node": "Send Statutory Deadline Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Statutory Deadline Alert": {
+      "main": [
+        [
+          {
+            "node": "Log Notice to History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Active Deadlines",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolve Statutory Rule": {
+      "main": [
+        [
+          {
+            "node": "Set Deadline Parameters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true,
+    "errorWorkflow": "Dvao8HFN2GnGuaQZ"
+  },
+  "versionId": "e3f387b9-ee19-4011-b751-fa3ffbbffdf6",
+  "meta": {
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp",
+    "instanceId": "1b7f2b8bd7379ce28884aabf2215f3c90ff32a7e4c4f1088ddd7ce0532074b6f"
+  },
+  "nodeGroups": [
+    {
+      "id": "755923ce-f95e-46ab-99fb-2d5547c02e68",
+      "name": "Statutory Deadline Registration",
+      "nodeIds": [
+        "8253642f-14be-41cf-a47e-29d865497dae",
+        "70b22886-20b5-4ed4-9787-2a91cac902ab",
+        "c11349ad-47b3-4358-98b9-c4039bb368ff",
+        "4c028e49-1b92-4714-b830-e9888e50d3e5"
+      ],
+      "description": "Resolves statutory rule from global variable configuration, calculates due date, records entry, and formats response."
+    },
+    {
+      "id": "991fab37-4275-4166-8108-43ec4ef26e11",
+      "name": "Limitation Evaluation, Alert Dispatch & History Logging",
+      "nodeIds": [
+        "61bd4cc8-fdb2-4e2f-9765-100c85de87c9",
+        "bb0a99ea-4f4d-4c43-8d19-a9e0e6f37159",
+        "96426b5e-b9db-4c32-9230-cb102c7e54a1"
+      ],
+      "description": "Evaluates whether deadlines expire within limitation window, dispatches email alerts to counsel, and logs audit notices to history."
+    }
+  ],
+  "id": "LK7BkDQqwXqLVBKC",
+  "tags": []
+}

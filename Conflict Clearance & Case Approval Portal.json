@@ -1,0 +1,408 @@
+{
+  "name": "Conflict Clearance & Case Approval Portal",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "⚖️ Case Conflict Review & Approval",
+        "formDescription": "Step 1 — Submit your administrative determination (Accept or Reject) for this flagged matter.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Case ID",
+              "placeholder": "e.g. 175024",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Review Decision",
+              "fieldType": "dropdown",
+              "defaultValue": "Accept Case & Clear Conflict",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Accept Case & Clear Conflict"
+                  },
+                  {
+                    "option": "Reject & Decline Case"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Resolution Comments / Justification",
+              "fieldType": "textarea",
+              "placeholder": "Enter reason, formal waiver reference, or grounds for decline...",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Reviewer Email",
+              "fieldType": "email",
+              "defaultValue": "={{ $vars.FIRM_ADMIN_EMAIL }}",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "buttonLabel": "Submit Conflict Determination ➔"
+        }
+      },
+      "id": "04b48073-29bf-4706-b151-977ad58160a6",
+      "name": "Conflict Review Form",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        0,
+        192
+      ],
+      "webhookId": "48a51673-35f6-4a85-bb84-2f4aaac2885c"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $vars.TABLE_CASE_DIRECTORY || 'PFF0bSgccDIC5E5T' }}"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "case_id",
+              "condition": "ilike",
+              "keyValue": "={{ $('Conflict Review Form').first().json['Case ID'].toString().trim() }}"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "id": "19cdf017-ec31-4c6d-9ec7-769b17e7b6e4",
+      "name": "Lookup Case in Directory",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        192
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c-found",
+              "leftValue": "={{ Boolean($('Lookup Case in Directory').first() && $('Lookup Case in Directory').first().json.case_id) }}",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              },
+              "rightValue": ""
+            }
+          ],
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          }
+        },
+        "options": {}
+      },
+      "id": "46252166-7e01-4cd4-90c2-c13edf20b1df",
+      "name": "Is Case Found?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        448,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $vars.TABLE_CASE_DIRECTORY || 'PFF0bSgccDIC5E5T' }}"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "case_id",
+              "condition": "ilike",
+              "keyValue": "={{ $('Lookup Case in Directory').first().json.case_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "case_status": "={{ ($('Conflict Review Form').first().json['Review Decision'] || '').includes('Accept') ? 'active' : 'closed' }}",
+            "conflict_status": "={{ ($('Conflict Review Form').first().json['Review Decision'] || '').includes('Accept') ? 'Clear (Approved by Admin)' : 'Declined (Conflict)' }}",
+            "legal_proceeding_stage": "={{ ($('Conflict Review Form').first().json['Review Decision'] || '').includes('Accept') ? 'paper filed' : 'declined' }}",
+            "notes": "={{ '[Admin Conflict Determination - ' + $('Conflict Review Form').first().json['Review Decision'] + ']: ' + $('Conflict Review Form').first().json['Resolution Comments / Justification'] + ' | ' + ($('Lookup Case in Directory').first().json.notes || '') }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "fd1ec080-5d7a-4e09-ad1f-a71cf1928065",
+      "name": "Update Case Directory Record",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        672,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c-acc",
+              "leftValue": "={{ ($('Conflict Review Form').first().json['Review Decision'] || '').includes('Accept') }}",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              },
+              "rightValue": ""
+            }
+          ],
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          }
+        },
+        "options": {}
+      },
+      "id": "5332a7bf-9fe8-44a1-b9eb-0b7fca237d7e",
+      "name": "Is Accepted?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        896,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Lookup Case in Directory').first().json.case_owner_email }}",
+        "subject": "={{ '🎉 Welcome to Our Firm — Case #' + $('Lookup Case in Directory').first().json.case_id + ' Approved' }}",
+        "message": "=<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #1e293b; max-width: 620px; margin: 0 auto; border: 1px solid #cbd5e1; border-radius: 10px; overflow: hidden; background: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.06);\"><div style=\"background: linear-gradient(135deg, #065f46 0%, #047857 100%); color: #ffffff; padding: 26px 28px; border-bottom: 3px solid #10b981;\"><div style=\"font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; opacity: 0.85; margin-bottom: 4px; font-weight: 600;\">Legal Practice Management &bull; Compliance Clearance</div><h2 style=\"margin: 0; font-size: 22px; font-weight: 700; color: #ffffff;\">🎉 Representation Approved &amp; Cleared</h2><p style=\"margin: 6px 0 0 0; opacity: 0.95; font-size: 14px;\">Case Reference: <strong style=\"color: #a7f3d0;\">#{{ $('Lookup Case in Directory').first().json.case_id }}</strong> &bull; Client: <strong>{{ $('Lookup Case in Directory').first().json.client_name }}</strong></p></div><div style=\"padding: 28px 28px 24px 28px;\"><p style=\"font-size: 15px; margin-top: 0; color: #0f172a;\">Dear <strong>{{ $('Lookup Case in Directory').first().json.client_name }}</strong>,</p><p style=\"font-size: 14px; line-height: 1.6; color: #334155; margin-bottom: 20px;\">We are pleased to inform you that our administrative conflict review is complete. Your legal matter (Case Reference: <strong>#{{ $('Lookup Case in Directory').first().json.case_id }}</strong>) has been formally <strong>Approved &amp; Accepted</strong> for legal representation by our firm.</p><div style=\"background-color: #f0fdf4; border: 1.5px solid #86efac; border-left: 5px solid #16a34a; border-radius: 8px; padding: 18px 20px; margin-bottom: 22px;\"><h4 style=\"margin: 0 0 8px 0; color: #15803d; font-size: 15px; font-weight: 700;\">✅ Administrative Determination</h4><p style=\"color: #166534; font-size: 13px; line-height: 1.6; margin: 0 0 8px 0;\"><strong>Status:</strong> Cleared by Firm Administration</p><p style=\"color: #166534; font-size: 13px; line-height: 1.6; margin: 0;\"><strong>Resolution Notes:</strong> {{ $('Conflict Review Form').first().json['Resolution Comments / Justification'] }}</p></div><div style=\"background-color: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 18px 20px; margin-bottom: 22px;\"><table border=\"0\" cellpadding=\"7\" style=\"width: 100%; border-collapse: collapse; font-size: 14px;\"><tr style=\"border-bottom: 1px solid #edf2f7;\"><td style=\"width: 38%; color: #64748b; font-weight: 500;\">Case Reference ID:</td><td><code style=\"font-size: 15px; font-weight: 700; color: #065f46; background: #e6f4ea; padding: 3px 8px; border-radius: 4px;\">#{{ $('Lookup Case in Directory').first().json.case_id }}</code></td></tr><tr style=\"border-bottom: 1px solid #edf2f7;\"><td style=\"color: #64748b; font-weight: 500;\">Client Name:</td><td><strong style=\"color: #0f172a;\">{{ $('Lookup Case in Directory').first().json.client_name }}</strong></td></tr><tr style=\"border-bottom: 1px solid #edf2f7;\"><td style=\"color: #64748b; font-weight: 500;\">Case Status:</td><td><span style=\"background: #dcfce7; color: #15803d; padding: 3px 10px; border-radius: 4px; font-weight: 700; font-size: 12px; text-transform: uppercase;\">ACTIVE</span></td></tr><tr><td style=\"color: #64748b; font-weight: 500;\">Proceeding Stage:</td><td><span style=\"color: #0f172a; font-weight: 600;\">Paper Filed / Counsel Assignment</span></td></tr></table></div><div style=\"background-color: #f1f5f9; padding: 14px 18px; border-radius: 6px; margin-bottom: 22px;\"><p style=\"margin: 0; font-size: 13px; color: #475569; line-height: 1.5;\"><strong>Next Steps:</strong> A lead litigation advocate will be formally assigned to your case docket. You will receive hearing listings, litigation checklists, and engagement paperwork directly in your portal.</p></div><div style=\"text-align: center; margin: 26px 0 18px 0;\"><a href=\"{{ $vars.CLIENT_PORTAL_URL }}\" target=\"_blank\" style=\"display: inline-block; background-color: #047857; color: #ffffff; padding: 13px 28px; text-decoration: none; border-radius: 6px; font-weight: 700; font-size: 14px; box-shadow: 0 2px 4px rgba(4,120,87,0.3);\">📱 Open Case in Client Portal ➔</a></div><hr style=\"border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0 16px 0;\"/><p style=\"font-size: 12px; color: #94a3b8; margin: 0; text-align: center;\">Legal Practice Management System &bull; Privileged &amp; Confidential Attorney-Client Notice</p></div></div>",
+        "options": {
+          "ccList": "={{ $vars.FIRM_ADMIN_EMAIL }}"
+        }
+      },
+      "id": "4a7e7e12-fd19-4db9-8eff-f73cd53be91e",
+      "name": "Send Client Acceptance Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1120,
+        0
+      ],
+      "webhookId": "aa554358-7ed2-4c76-bd32-d0c20a1d1bed",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "sVmGKpNsTs1T3jnJ",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "Conflict Determination Recorded",
+        "completionMessage": "=<h3>✅ Conflict Determination Applied Successfully</h3><p>Case Reference: <strong>#{{ $('Lookup Case in Directory').first().json.case_id }}</strong> (Client: {{ $('Lookup Case in Directory').first().json.client_name }})</p><div style='padding: 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; margin: 12px 0;'><p style='margin: 0 0 6px 0;'><strong>Determination:</strong> <strong>{{ $('Conflict Review Form').first().json['Review Decision'] }}</strong></p><p style='margin: 0 0 6px 0;'><strong>Case Status:</strong> <code>{{ ($('Conflict Review Form').first().json['Review Decision'] || '').includes('Accept') ? 'active' : 'closed' }}</code></p><p style='margin: 0; font-size: 13px; color: #475569;'><strong>Comments / Notes:</strong> {{ $('Conflict Review Form').first().json['Resolution Comments / Justification'] }}</p></div><p style='color: #475569; font-size: 14px;'>The decision has been synchronized with the case directory and client notification email dispatched.</p>",
+        "options": {}
+      },
+      "id": "fff4bcc1-b50c-4508-b6ef-1b501bf3e62c",
+      "name": "Decision Recorded Screen",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        1344,
+        96
+      ],
+      "webhookId": "3ae399ad-a970-4479-bff8-cbe3b1fda472"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Lookup Case in Directory').first().json.case_owner_email }}",
+        "subject": "={{ 'Legal Representation Notice — Case #' + $('Lookup Case in Directory').first().json.case_id }}",
+        "message": "=<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #1e293b; max-width: 620px; margin: 0 auto; border: 1px solid #cbd5e1; border-radius: 10px; overflow: hidden; background: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.06);\"><div style=\"background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #ffffff; padding: 26px 28px; border-bottom: 3px solid #dc2626;\"><div style=\"font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; opacity: 0.85; margin-bottom: 4px; font-weight: 600;\">Legal Practice Management &bull; Compliance Notice</div><h2 style=\"margin: 0; font-size: 22px; font-weight: 700; color: #ffffff;\">⚖️ Notice Concerning Representation</h2><p style=\"margin: 6px 0 0 0; opacity: 0.95; font-size: 14px;\">Case Reference: <strong style=\"color: #fca5a5;\">#{{ $('Lookup Case in Directory').first().json.case_id }}</strong> &bull; Client: <strong>{{ $('Lookup Case in Directory').first().json.client_name }}</strong></p></div><div style=\"padding: 28px 28px 24px 28px;\"><p style=\"font-size: 15px; margin-top: 0; color: #0f172a;\">Dear <strong>{{ $('Lookup Case in Directory').first().json.client_name }}</strong>,</p><p style=\"font-size: 14px; line-height: 1.6; color: #334155; margin-bottom: 20px;\">Thank you for contacting our firm regarding legal matter Reference <strong>#{{ $('Lookup Case in Directory').first().json.case_id }}</strong>.</p><div style=\"background-color: #fef2f2; border: 1.5px solid #fecaca; border-left: 5px solid #dc2626; border-radius: 8px; padding: 18px 20px; margin-bottom: 22px;\"><h4 style=\"margin: 0 0 8px 0; color: #991b1b; font-size: 15px; font-weight: 700;\">🚫 Unresolved Conflict of Interest</h4><p style=\"color: #7f1d1d; font-size: 13px; line-height: 1.6; margin: 0 0 8px 0;\">Following our professional conflict screening and administrative review, our firm cannot undertake legal representation in this matter due to an existing adverse party or organizational conflict of interest.</p><p style=\"color: #7f1d1d; font-size: 13px; line-height: 1.6; margin: 0;\"><strong>Grounds for Determination:</strong> {{ $('Conflict Review Form').first().json['Resolution Comments / Justification'] }}</p></div><div style=\"background-color: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 18px 20px; margin-bottom: 22px;\"><table border=\"0\" cellpadding=\"7\" style=\"width: 100%; border-collapse: collapse; font-size: 14px;\"><tr style=\"border-bottom: 1px solid #edf2f7;\"><td style=\"width: 38%; color: #64748b; font-weight: 500;\">Case Reference ID:</td><td><code style=\"font-size: 15px; font-weight: 700; color: #0f172a; background: #e2e8f0; padding: 3px 8px; border-radius: 4px;\">#{{ $('Lookup Case in Directory').first().json.case_id }}</code></td></tr><tr style=\"border-bottom: 1px solid #edf2f7;\"><td style=\"color: #64748b; font-weight: 500;\">Matter Status:</td><td><span style=\"background: #fee2e2; color: #991b1b; padding: 3px 10px; border-radius: 4px; font-weight: 700; font-size: 12px; text-transform: uppercase;\">CLOSED / DECLINED</span></td></tr><tr><td style=\"color: #64748b; font-weight: 500;\">Determination Date:</td><td><span style=\"color: #475569;\">{{ $now.toFormat('dd LLL yyyy') }}</span></td></tr></table></div><p style=\"font-size: 13px; color: #64748b; line-height: 1.6;\">Please note that any documents or details uploaded have been handled with strict confidentiality. We encourage you to seek timely alternative counsel to ensure no statutory filing or limitation deadlines are prejudiced.</p><hr style=\"border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0 16px 0;\"/><p style=\"font-size: 12px; color: #94a3b8; margin: 0; text-align: center;\">Legal Practice Management System &bull; Privileged &amp; Confidential Legal Communication</p></div></div>",
+        "options": {
+          "ccList": "={{ $vars.FIRM_ADMIN_EMAIL }}"
+        }
+      },
+      "id": "d7dc715b-7121-4a5b-b114-be03955eac40",
+      "name": "Send Client Decline Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1120,
+        192
+      ],
+      "webhookId": "d01145f9-df62-4f43-987c-890f52682cd3",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "sVmGKpNsTs1T3jnJ",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "Case ID Not Found",
+        "completionMessage": "=<h3>❌ Case Not Found</h3><p>Could not locate any matter in the directory matching Case ID: <strong>{{ $('Conflict Review Form').first().json['Case ID'] }}</strong>. Please check the Case ID and try again.</p>",
+        "options": {}
+      },
+      "id": "3e983645-c63f-40de-8e3c-2f98c0f8dc9d",
+      "name": "Case Not Found Screen",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        672,
+        288
+      ],
+      "webhookId": "5cbdab0e-7ae7-49d4-bb32-2e47076d32fa"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Conflict Review Form": {
+      "main": [
+        [
+          {
+            "node": "Lookup Case in Directory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Case in Directory": {
+      "main": [
+        [
+          {
+            "node": "Is Case Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Case Found?": {
+      "main": [
+        [
+          {
+            "node": "Update Case Directory Record",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Case Not Found Screen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Case Directory Record": {
+      "main": [
+        [
+          {
+            "node": "Is Accepted?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Accepted?": {
+      "main": [
+        [
+          {
+            "node": "Send Client Acceptance Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Client Decline Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Client Acceptance Email": {
+      "main": [
+        [
+          {
+            "node": "Decision Recorded Screen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Client Decline Email": {
+      "main": [
+        [
+          {
+            "node": "Decision Recorded Screen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true,
+    "errorWorkflow": "Dvao8HFN2GnGuaQZ"
+  },
+  "versionId": "ef2b89d3-a4f7-4622-8043-726e9a9b7d1d",
+  "meta": {
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp",
+    "instanceId": "1b7f2b8bd7379ce28884aabf2215f3c90ff32a7e4c4f1088ddd7ce0532074b6f"
+  },
+  "nodeGroups": [
+    {
+      "id": "9f175a3b-8ca9-44c6-a854-817c609aaa3f",
+      "name": "Conflict Decision & Client Notification Pipeline",
+      "nodeIds": [
+        "fd1ec080-5d7a-4e09-ad1f-a71cf1928065",
+        "5332a7bf-9fe8-44a1-b9eb-0b7fca237d7e",
+        "4a7e7e12-fd19-4db9-8eff-f73cd53be91e",
+        "d7dc715b-7121-4a5b-b114-be03955eac40",
+        "fff4bcc1-b50c-4508-b6ef-1b501bf3e62c"
+      ],
+      "description": "Updates case directory with conflict resolution decision, dispatches client decision email, and renders confirmation screen."
+    }
+  ],
+  "id": "FtKWA3EPsAvMYmRF",
+  "tags": []
+}

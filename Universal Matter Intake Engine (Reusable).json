@@ -1,0 +1,697 @@
+{
+  "name": "Universal Matter Intake Engine (Reusable)",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "client_name"
+            },
+            {
+              "name": "client_email"
+            },
+            {
+              "name": "location"
+            },
+            {
+              "name": "address"
+            },
+            {
+              "name": "pincode"
+            },
+            {
+              "name": "Full Name"
+            },
+            {
+              "name": "Email Address"
+            },
+            {
+              "name": "Location"
+            },
+            {
+              "name": "Address"
+            },
+            {
+              "name": "Pincode"
+            }
+          ]
+        }
+      },
+      "id": "5ea065a2-8606-401a-8e0d-6d23bd0f2414",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -800,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ris-1",
+              "name": "case_id",
+              "type": "string",
+              "value": "={{ $('Generate Case ID').first().json.case_id }}"
+            },
+            {
+              "id": "ris-2",
+              "name": "client_name",
+              "type": "string",
+              "value": "={{ $('Generate Case ID').first().json.client_name }}"
+            },
+            {
+              "id": "ris-3",
+              "name": "client_email",
+              "type": "string",
+              "value": "={{ $('Generate Case ID').first().json.client_email }}"
+            },
+            {
+              "id": "ris-4",
+              "name": "location",
+              "type": "string",
+              "value": "={{ $('Generate Case ID').first().json.location }}"
+            },
+            {
+              "id": "ris-5",
+              "name": "address",
+              "type": "string",
+              "value": "={{ $('Generate Case ID').first().json.address }}"
+            },
+            {
+              "id": "ris-6",
+              "name": "pincode",
+              "type": "string",
+              "value": "={{ $('Generate Case ID').first().json.pincode }}"
+            },
+            {
+              "id": "ris-7",
+              "name": "case_status",
+              "type": "string",
+              "value": "={{ $('Execute Conflict Check Engine').first().json.has_conflict ? 'pending_approval' : 'active' }}"
+            },
+            {
+              "id": "ris-8",
+              "name": "legal_proceeding_stage",
+              "type": "string",
+              "value": "={{ $('Execute Conflict Check Engine').first().json.has_conflict ? 'conflict review' : 'paper filed' }}"
+            },
+            {
+              "id": "ris-9",
+              "name": "document_url",
+              "type": "string",
+              "value": "={{ $('Execute AI Document & Vault Triage').first().json.document_url || '' }}"
+            },
+            {
+              "id": "ris-10",
+              "name": "document_title",
+              "type": "string",
+              "value": "={{ $('Execute AI Document & Vault Triage').first().json.document_title || '' }}"
+            },
+            {
+              "id": "ris-11",
+              "name": "document_category",
+              "type": "string",
+              "value": "={{ $('Execute AI Document & Vault Triage').first().json.document_category || 'General Matter' }}"
+            },
+            {
+              "id": "ris-12",
+              "name": "document_summary",
+              "type": "string",
+              "value": "={{ $('Execute AI Document & Vault Triage').first().json.document_summary || '' }}"
+            },
+            {
+              "id": "ris-13",
+              "name": "urgency_level",
+              "type": "string",
+              "value": "={{ $('Execute AI Document & Vault Triage').first().json.urgency_level || 'Medium' }}"
+            },
+            {
+              "id": "ris-14",
+              "name": "adverse_party",
+              "type": "string",
+              "value": "={{ $('Execute AI Document & Vault Triage').first().json.adverse_party || 'None' }}"
+            },
+            {
+              "id": "ris-15",
+              "name": "conflict_status",
+              "type": "string",
+              "value": "={{ $('Execute Conflict Check Engine').first().json.conflict_status || 'Clear' }}"
+            },
+            {
+              "id": "ris-16",
+              "name": "conflict_details",
+              "type": "string",
+              "value": "={{ $('Execute Conflict Check Engine').first().json.conflict_details || 'No opposing party or client overlap found across directory.' }}"
+            },
+            {
+              "id": "ris-17",
+              "name": "has_conflict",
+              "type": "boolean",
+              "value": "={{ Boolean($('Execute Conflict Check Engine').first().json.has_conflict) }}"
+            },
+            {
+              "id": "ris-18",
+              "name": "jotter_url",
+              "type": "string",
+              "value": "={{ $('Execute AI Document & Vault Triage').first().json.jotter_url || '' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "8ef60ee2-961b-48d3-ad84-09646481da39",
+      "name": "Return Intake Summary",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        704,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const intakeItem = $input.first();\nconst raw = intakeItem.json || {};\n\nconst clientName = (raw.client_name || raw['Full Name'] || '').trim();\nconst clientEmail = (raw.client_email || raw['Email Address'] || '').trim().toLowerCase();\nconst location = (raw.location || raw['Location'] || '').trim();\nconst address = (raw.address || raw['Address'] || '').trim();\nconst pincode = (raw.pincode || raw['Pincode'] || '').toString().trim();\n\nconst generatedId = Math.floor(100000 + Math.random() * 900000).toString();\n\nreturn [{\n  json: {\n    ...raw,\n    case_id: generatedId,\n    client_name: clientName,\n    client_email: clientEmail,\n    location: location,\n    address: address,\n    pincode: pincode,\n    case_status: 'active',\n    legal_proceeding_stage: 'paper filed'\n  },\n  pairedItem: { item: 0 },\n  binary: intakeItem.binary || undefined\n}];"
+      },
+      "id": "889c6baf-23d3-4c9b-ad5b-b784e27ff0aa",
+      "name": "Generate Case ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -512,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "MhACOAVzwadGpUYN"
+        },
+        "options": {}
+      },
+      "id": "31d15fc1-9d4b-4c97-99fd-dab81fa9d96c",
+      "name": "Execute AI Document & Vault Triage",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        -288,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "L7NievjuiaXSGdP5"
+        },
+        "options": {}
+      },
+      "id": "fdbf65b2-4df1-496b-bd12-72a5efd6dbf9",
+      "name": "Execute Conflict Check Engine",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        -64,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $vars.TABLE_CASE_DIRECTORY || 'PFF0bSgccDIC5E5T' }}"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "schema": [
+            {
+              "displayName": "case_id",
+              "id": "case_id",
+              "type": "string"
+            },
+            {
+              "displayName": "client_name",
+              "id": "client_name",
+              "type": "string"
+            },
+            {
+              "displayName": "case_owner_email",
+              "id": "case_owner_email",
+              "type": "string"
+            },
+            {
+              "displayName": "firm_admin_email",
+              "id": "firm_admin_email",
+              "type": "string"
+            },
+            {
+              "displayName": "location",
+              "id": "location",
+              "type": "string"
+            },
+            {
+              "displayName": "address",
+              "id": "address",
+              "type": "string"
+            },
+            {
+              "displayName": "pincode",
+              "id": "pincode",
+              "type": "string"
+            },
+            {
+              "displayName": "case_status",
+              "id": "case_status",
+              "type": "string"
+            },
+            {
+              "displayName": "legal_proceeding_stage",
+              "id": "legal_proceeding_stage",
+              "type": "string"
+            },
+            {
+              "displayName": "notes",
+              "id": "notes",
+              "type": "string"
+            },
+            {
+              "displayName": "document_url",
+              "id": "document_url",
+              "type": "string"
+            },
+            {
+              "displayName": "document_title",
+              "id": "document_title",
+              "type": "string"
+            },
+            {
+              "displayName": "document_category",
+              "id": "document_category",
+              "type": "string"
+            },
+            {
+              "displayName": "document_summary",
+              "id": "document_summary",
+              "type": "string"
+            },
+            {
+              "displayName": "urgency_level",
+              "id": "urgency_level",
+              "type": "string"
+            },
+            {
+              "displayName": "adverse_party",
+              "id": "adverse_party",
+              "type": "string"
+            },
+            {
+              "displayName": "conflict_status",
+              "id": "conflict_status",
+              "type": "string"
+            },
+            {
+              "displayName": "conflict_details",
+              "id": "conflict_details",
+              "type": "string"
+            },
+            {
+              "displayName": "jotter_url",
+              "id": "jotter_url",
+              "type": "string"
+            }
+          ],
+          "value": {
+            "address": "={{ $('Generate Case ID').first().json.address }}",
+            "adverse_party": "={{ $('Execute Conflict Check Engine').first().json.adverse_party || 'None' }}",
+            "case_id": "={{ $('Generate Case ID').first().json.case_id }}",
+            "case_owner_email": "={{ $('Generate Case ID').first().json.client_email }}",
+            "case_status": "={{ $('Execute Conflict Check Engine').first().json.has_conflict ? 'pending_approval' : 'active' }}",
+            "client_name": "={{ $('Generate Case ID').first().json.client_name }}",
+            "conflict_details": "={{ $('Execute Conflict Check Engine').first().json.conflict_details || 'No opposing party or client overlap found across directory.' }}",
+            "conflict_status": "={{ $('Execute Conflict Check Engine').first().json.conflict_status || 'Clear' }}",
+            "document_category": "={{ $('Execute AI Document & Vault Triage').first().json.document_category || 'General Matter' }}",
+            "document_summary": "={{ $('Execute AI Document & Vault Triage').first().json.document_summary || '' }}",
+            "document_title": "={{ $('Execute AI Document & Vault Triage').first().json.document_title || '' }}",
+            "document_url": "={{ $('Execute AI Document & Vault Triage').first().json.document_url || '' }}",
+            "firm_admin_email": "sahil.soni@trootech.com",
+            "legal_proceeding_stage": "={{ $('Execute Conflict Check Engine').first().json.has_conflict ? 'conflict review' : 'paper filed' }}",
+            "location": "={{ $('Generate Case ID').first().json.location }}",
+            "notes": "={{ $('Execute Conflict Check Engine').first().json.has_conflict ? ('🚨 CONFLICT ALERT: ' + $('Execute Conflict Check Engine').first().json.conflict_details) : ('New client onboarded via Client Portal. Case created: ' + $('Generate Case ID').first().json.case_id) }}",
+            "pincode": "={{ $('Generate Case ID').first().json.pincode }}",
+            "urgency_level": "={{ $('Execute AI Document & Vault Triage').first().json.urgency_level || 'Medium' }}",
+            "jotter_url": "={{ $('Execute AI Document & Vault Triage').first().json.jotter_url || '' }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "66cfaae3-b582-46a8-8a04-614aaeecb92d",
+      "name": "Register Case in Directory",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        160,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "p0eO43HcBTuB8SaX"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "schema": [
+            {
+              "displayName": "case_id",
+              "id": "case_id",
+              "type": "string"
+            },
+            {
+              "displayName": "milestone_type",
+              "id": "milestone_type",
+              "type": "string"
+            },
+            {
+              "displayName": "client_name",
+              "id": "client_name",
+              "type": "string"
+            },
+            {
+              "displayName": "client_email",
+              "id": "client_email",
+              "type": "string"
+            },
+            {
+              "displayName": "triggered_by",
+              "id": "triggered_by",
+              "type": "string"
+            }
+          ],
+          "value": {
+            "case_id": "={{ $('Generate Case ID').first().json.case_id }}",
+            "client_email": "={{ $('Generate Case ID').first().json.client_email }}",
+            "client_name": "={{ $('Generate Case ID').first().json.client_name }}",
+            "milestone_type": "onboarding_welcome",
+            "triggered_by": "client_portal_signup"
+          }
+        },
+        "options": {}
+      },
+      "id": "57d40ad3-180c-4c85-8244-09b249b8da3b",
+      "name": "Trigger Onboarding Milestone",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $vars.FIRM_ADMIN_EMAIL }}",
+        "subject": "={{ $('Execute Conflict Check Engine').first().json.conflict_status !== 'Clear' ? ('🚨 CONFLICT ALERT: New Client Intake - ' + $('Generate Case ID').first().json.client_name + ' (Case #' + $('Generate Case ID').first().json.case_id + ')') : ('New Client Intake: ' + $('Generate Case ID').first().json.client_name + ' (Case #' + $('Generate Case ID').first().json.case_id + ')') }}",
+        "message": "=<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #ffffff;\">\n  <div style=\"background-color: #0f172a; padding: 16px 20px; border-radius: 6px; margin-bottom: 20px;\">\n    <h2 style=\"color: #ffffff; margin: 0; font-size: 20px;\">⚖️ Legal Firm Administration — New Matter Intake</h2>\n  </div>\n  \n  <p style=\"font-size: 15px; color: #334155; line-height: 1.5;\">\n    Hello Firm Administrator & Advocate,\n  </p>\n  <p style=\"font-size: 14px; color: #334155; line-height: 1.5;\">\n    A new matter has been submitted and ingested into the case directory with digital vault storage and automated Jotter brief generation.\n  </p>\n\n  {{ $('Execute Conflict Check Engine').first().json.conflict_status !== 'Clear' ? ('<div style=\"background-color: #fef2f2; border: 2px solid #ef4444; border-radius: 8px; padding: 16px; margin: 20px 0;\"><h3 style=\"color: #b91c1c; margin: 0 0 8px 0; font-size: 16px;\">🚨 Potential Conflict of Interest Detected</h3><p style=\"color: #991b1b; font-size: 14px; margin: 0 0 10px 0;\"><strong>Alert Details:</strong> ' + $('Execute Conflict Check Engine').first().json.conflict_details + '</p><p style=\"color: #7f1d1d; font-size: 13px; margin: 0;\"><strong>Action Required:</strong> Review this conflict in Case Management. You may either <em>Accept & Proceed</em> (if waived or distinct party) or <em>Reject & Decline</em> the representation.</p></div>') : ('<div style=\"background-color: #f0fdf4; border: 1px solid #86efac; border-radius: 6px; padding: 10px 14px; margin: 16px 0;\"><span style=\"color: #15803d; font-weight: bold; font-size: 14px;\">✅ Conflict Check: CLEAR</span> <span style=\"color: #166534; font-size: 13px;\">(No opposing party overlap found in case directory)</span></div>') }}\n\n  <div style=\"background-color: #f8fafc; border-left: 4px solid #2563eb; padding: 14px 18px; margin: 20px 0; border-radius: 4px;\">\n    <h3 style=\"margin-top: 0; color: #1e293b; font-size: 15px;\">📋 Matter Details</h3>\n    <table style=\"width: 100%; border-collapse: collapse; font-size: 14px;\">\n      <tr>\n        <td style=\"padding: 6px 0; color: #64748b; width: 140px;\"><strong>Case ID:</strong></td>\n        <td style=\"padding: 6px 0; color: #0f172a;\"><code style=\"background-color: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-weight: bold;\">{{ $('Generate Case ID').first().json.case_id }}</code></td>\n      </tr>\n      <tr>\n        <td style=\"padding: 6px 0; color: #64748b;\"><strong>Client Name:</strong></td>\n        <td style=\"padding: 6px 0; color: #0f172a; font-weight: bold;\">{{ $('Generate Case ID').first().json.client_name }}</td>\n      </tr>\n      <tr>\n        <td style=\"padding: 6px 0; color: #64748b;\"><strong>Client Email:</strong></td>\n        <td style=\"padding: 6px 0; color: #0f172a;\"><a href=\"mailto:{{ $('Generate Case ID').first().json.client_email }}\" style=\"color: #2563eb;\">{{ $('Generate Case ID').first().json.client_email }}</a></td>\n      </tr>\n      <tr>\n        <td style=\"padding: 6px 0; color: #64748b;\"><strong>Opposing Party:</strong></td>\n        <td style=\"padding: 6px 0; color: #0f172a; font-weight: bold;\">{{ $('Execute AI Document & Vault Triage').first().json.adverse_party || $('Execute Conflict Check Engine').first().json.adverse_party || 'None identified' }}</td>\n      </tr>\n      <tr>\n        <td style=\"padding: 6px 0; color: #64748b;\"><strong>Location / PIN:</strong></td>\n        <td style=\"padding: 6px 0; color: #0f172a;\">{{ $('Generate Case ID').first().json.location }} - {{ $('Generate Case ID').first().json.pincode }}</td>\n      </tr>\n      <tr>\n        <td style=\"padding: 6px 0; color: #64748b;\"><strong>Urgency Assessment:</strong></td>\n        <td style=\"padding: 6px 0;\"><span style=\"background-color: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 600; text-transform: uppercase;\">{{ $('Execute AI Document & Vault Triage').first().json.urgency_level || 'Medium' }}</span></td>\n      </tr>\n    </table>\n  </div>\n\n  <div style=\"background-color: #f0fdf4; border: 1px solid #86efac; padding: 18px; margin: 20px 0; border-radius: 8px;\">\n    <div style=\"display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;\">\n      <h3 style=\"margin: 0; color: #166534; font-size: 16px;\">📁 Digital Vault & Legal Intelligence</h3>\n    </div>\n    \n    <p style=\"margin: 0 0 12px 0; font-size: 14px; color: #1f2937;\">\n      <strong>Title:</strong> {{ $('Execute AI Document & Vault Triage').first().json.document_title || 'Legal Document' }}<br/>\n      <strong>Category:</strong> {{ $('Execute AI Document & Vault Triage').first().json.document_category || 'General Matter' }}\n    </p>\n\n    <div style=\"display: flex; flex-direction: column; gap: 8px; margin: 14px 0;\">\n      {{ $('Execute AI Document & Vault Triage').first().json.document_url ? ('<div><a href=\"' + $('Execute AI Document & Vault Triage').first().json.document_url + '\" target=\"_blank\" style=\"background-color: #16a34a; color: #ffffff; text-decoration: none; padding: 10px 18px; border-radius: 6px; font-weight: bold; font-size: 13px; display: inline-block;\">📄 View Original Document in Vault &rarr;</a></div>') : '<p style=\"color: #6b7280; font-style: italic;\">No document uploaded during intake.</p>' }}\n      {{ $('Execute AI Document & Vault Triage').first().json.jotter_url ? ('<div><a href=\"' + $('Execute AI Document & Vault Triage').first().json.jotter_url + '\" target=\"_blank\" style=\"background-color: #4f46e5; color: #ffffff; text-decoration: none; padding: 10px 18px; border-radius: 6px; font-weight: bold; font-size: 13px; display: inline-block;\">📝 Open Jotter Note / AI Legal Brief (Google Drive) &rarr;</a></div>') : '' }}\n    </div>\n\n    <div style=\"background: #ffffff; border: 1px solid #dcfce7; border-radius: 6px; padding: 12px; margin-top: 14px;\">\n      <h4 style=\"margin: 0 0 8px 0; color: #15803d; font-size: 14px;\">📋 Key Case Points:</h4>\n      <ul style=\"margin: 0; padding-left: 20px; color: #374151; font-size: 13px; line-height: 1.6;\">\n        {{ ($('Execute AI Document & Vault Triage').first().json.document_summary || '').split('\\n').filter(l => l.trim()).map(l => '<li style=\"margin-bottom: 4px;\">' + l.replace(/^[••\\*]\\s*/, '').trim() + '</li>').join('') }}\n      </ul>\n    </div>\n  </div>\n\n  <div style=\"text-align: center; margin: 28px 0;\">\n    <a href=\"https://sahil8249.app.n8n.cloud/form/823e368f-b87a-4251-a8c0-968897515f4c\" style=\"background-color: #2563eb; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; font-size: 15px; display: inline-block;\">👉 Open Case Management & Assign Advocate</a>\n  </div>\n\n  <p style=\"font-size: 12px; color: #94a3b8; text-align: center; margin-top: 24px; border-top: 1px solid #f1f5f9; padding-top: 16px;\">\n    Case Reference: {{ $('Generate Case ID').first().json.case_id }} • Legal Practice Automation System\n  </p>\n</div>",
+        "options": {}
+      },
+      "id": "00b19de1-ec68-4c2c-b4dd-e03e7ad9d8a1",
+      "name": "Send Admin Intake Alert Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        464,
+        272
+      ],
+      "webhookId": "9d480254-296f-45fd-a269-0263d0309492",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "sVmGKpNsTs1T3jnJ",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c-has-conflict",
+              "leftValue": "={{ Boolean($('Execute Conflict Check Engine').first().json.has_conflict) }}",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              },
+              "rightValue": ""
+            }
+          ],
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          }
+        },
+        "options": {}
+      },
+      "id": "91b4419b-4b36-48bc-bd81-08438e059014",
+      "name": "Has Conflict Detected?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -48,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $vars.FIRM_ADMIN_EMAIL }}",
+        "subject": "={{ '🚨 ACTION REQUIRED: Conflict Approval Review - ' + $('Generate Case ID').first().json.client_name + ' (Case #' + $('Generate Case ID').first().json.case_id + ')' }}",
+        "message": "=<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #ffffff;\"><div style=\"background-color: #991b1b; padding: 16px 20px; border-radius: 6px; margin-bottom: 20px;\"><h2 style=\"color: #ffffff; margin: 0; font-size: 20px;\">🚨 ACTION REQUIRED: Conflict of Interest Review</h2></div><p style=\"font-size: 15px; color: #334155; line-height: 1.5;\">Hello Firm Administrator,</p><p style=\"font-size: 14px; color: #334155; line-height: 1.5;\">A new client intake has been submitted, but our automated conflict screening detected a <strong>Potential Conflict of Interest</strong>. In accordance with compliance rules, the case has been placed on <strong>administrative hold (Status: <code>pending_approval</code>)</strong>.</p><div style=\"background-color: #fef2f2; border: 2px solid #ef4444; border-radius: 8px; padding: 16px; margin: 20px 0;\"><h3 style=\"color: #b91c1c; margin: 0 0 8px 0; font-size: 16px;\">🚨 Conflict Screening Alert</h3><p style=\"color: #991b1b; font-size: 14px; margin: 0 0 10px 0;\"><strong>Conflict Details:</strong> {{ $('Execute Conflict Check Engine').first().json.conflict_details }}</p><p style=\"color: #7f1d1d; font-size: 13px; margin: 0;\"><strong>Action Required:</strong> Review this conflict and submit your formal administrative determination (Accept or Reject).</p></div><div style=\"background-color: #f8fafc; border-left: 4px solid #2563eb; padding: 14px 18px; margin: 20px 0; border-radius: 4px;\"><h3 style=\"margin-top: 0; color: #1e293b; font-size: 15px;\">📋 Matter Details</h3><table style=\"width: 100%; border-collapse: collapse; font-size: 14px;\"><tr><td style=\"padding: 6px 0; color: #64748b; width: 140px;\"><strong>Case ID:</strong></td><td style=\"padding: 6px 0; color: #0f172a;\"><code style=\"background-color: #e2e8f0; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 15px;\">{{ $('Generate Case ID').first().json.case_id }}</code></td></tr><tr><td style=\"padding: 6px 0; color: #64748b;\"><strong>Client Name:</strong></td><td style=\"padding: 6px 0; color: #0f172a; font-weight: bold;\">{{ $('Generate Case ID').first().json.client_name }}</td></tr><tr><td style=\"padding: 6px 0; color: #64748b;\"><strong>Client Email:</strong></td><td style=\"padding: 6px 0; color: #0f172a;\"><a href=\"mailto:{{ $('Generate Case ID').first().json.client_email }}\" style=\"color: #2563eb;\">{{ $('Generate Case ID').first().json.client_email }}</a></td></tr><tr><td style=\"padding: 6px 0; color: #64748b;\"><strong>Opposing Party:</strong></td><td style=\"padding: 6px 0; color: #0f172a; font-weight: bold;\">{{ $('Execute AI Document & Vault Triage').first().json.adverse_party || $('Execute Conflict Check Engine').first().json.adverse_party || 'None identified' }}</td></tr><tr><td style=\"padding: 6px 0; color: #64748b;\"><strong>Case Status:</strong></td><td style=\"padding: 6px 0; color: #b91c1c; font-weight: bold;\"><span style=\"background-color: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 600; text-transform: uppercase;\">PENDING_APPROVAL</span></td></tr></table></div><div style=\"text-align: center; margin: 28px 0;\"><a href=\"{{ $vars.CONFLICT_PORTAL_URL }}\" style=\"background-color: #dc2626; color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 6px; font-weight: bold; font-size: 16px; display: inline-block; box-shadow: 0 2px 4px rgba(220, 38, 38, 0.3);\">⚖️ Review & Resolve Conflict (Accept / Reject) ➔</a><p style=\"font-size: 13px; color: #475569; margin: 10px 0 0 0;\">Click the button above to open the decision form directly, enter Case #<strong>{{ $('Generate Case ID').first().json.case_id }}</strong>, select <strong>Accept</strong> or <strong>Reject</strong>, and submit your clearance comments.</p></div><p style=\"font-size: 12px; color: #94a3b8; text-align: center; margin-top: 24px; border-top: 1px solid #f1f5f9; padding-top: 16px;\">Case Reference: {{ $('Generate Case ID').first().json.case_id }} • Legal Practice Automation System</p></div>",
+        "options": {}
+      },
+      "id": "1ee30124-de1b-479a-80ba-d0a329417dca",
+      "name": "Send Admin Conflict Approval Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        240,
+        80
+      ],
+      "webhookId": "06abf049-7e05-4703-b34f-64d7ba644054",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "sVmGKpNsTs1T3jnJ",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Generate Case ID').first().json.client_email }}",
+        "subject": "={{ 'Legal Matter Submission Received - Pending Conflict Review (Case #' + $('Generate Case ID').first().json.case_id + ')' }}",
+        "message": "=<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #1e293b; max-width: 620px; margin: 0 auto; border: 1px solid #cbd5e1; border-radius: 10px; overflow: hidden; background: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.06);\"><div style=\"background: linear-gradient(135deg, #0f172a 0%, #334155 100%); color: #ffffff; padding: 26px 28px; border-bottom: 3px solid #ea580c;\"><div style=\"font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; opacity: 0.85; margin-bottom: 4px; font-weight: 600;\">Legal Practice Management &bull; Compliance Division</div><h2 style=\"margin: 0; font-size: 22px; font-weight: 700; color: #ffffff;\">⚖️ Matter Intake Status Update</h2><p style=\"margin: 6px 0 0 0; opacity: 0.95; font-size: 14px;\">Case Reference: <strong style=\"color: #fdba74;\">#{{ $('Generate Case ID').first().json.case_id }}</strong> &bull; Client: <strong>{{ $('Generate Case ID').first().json.client_name }}</strong></p></div><div style=\"padding: 28px 28px 24px 28px;\"><p style=\"font-size: 15px; margin-top: 0; color: #0f172a;\">Dear <strong>{{ $('Generate Case ID').first().json.client_name }}</strong>,</p><p style=\"font-size: 14px; line-height: 1.6; color: #334155; margin-bottom: 20px;\">Thank you for submitting your legal matter details. Your registration has been securely logged under Case Reference <strong style=\"color: #1e3a8a;\">#{{ $('Generate Case ID').first().json.case_id }}</strong>.</p><div style=\"background-color: #fff7ed; border: 1.5px solid #fed7aa; border-left: 5px solid #ea580c; border-radius: 8px; padding: 18px 20px; margin-bottom: 22px;\"><h4 style=\"margin: 0 0 10px 0; color: #9a3412; font-size: 15px; font-weight: 700;\">⚠️ Compliance &amp; Conflict Screening In Progress</h4><p style=\"color: #7c2d12; font-size: 13px; line-height: 1.6; margin: 0 0 10px 0;\">Under professional legal ethics regulations, all incoming matters undergo an automated cross-check against active directory records. Your submission has been flagged for routine administrative review by Firm Administration.</p><p style=\"color: #7c2d12; font-size: 13px; line-height: 1.6; margin: 0;\">To ensure strict attorney-client compliance, your case onboarding is temporarily on administrative hold (Status: <code>pending_approval</code>) while the review is finalized.</p></div><div style=\"background-color: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 18px 20px; margin-bottom: 22px;\"><table border=\"0\" cellpadding=\"7\" style=\"width: 100%; border-collapse: collapse; font-size: 14px;\"><tr style=\"border-bottom: 1px solid #edf2f7;\"><td style=\"width: 38%; color: #64748b; font-weight: 500;\">Case Reference ID:</td><td><code style=\"font-size: 15px; font-weight: 700; color: #0f172a; background: #e2e8f0; padding: 3px 8px; border-radius: 4px;\">#{{ $('Generate Case ID').first().json.case_id }}</code></td></tr><tr style=\"border-bottom: 1px solid #edf2f7;\"><td style=\"color: #64748b; font-weight: 500;\">Client Name:</td><td><strong style=\"color: #0f172a;\">{{ $('Generate Case ID').first().json.client_name }}</strong></td></tr><tr style=\"border-bottom: 1px solid #edf2f7;\"><td style=\"color: #64748b; font-weight: 500;\">Current Case Status:</td><td><span style=\"background: #fee2e2; color: #991b1b; padding: 3px 10px; border-radius: 4px; font-weight: 700; font-size: 12px; text-transform: uppercase;\">Pending Administrative Review</span></td></tr><tr><td style=\"color: #64748b; font-weight: 500;\">Next Notification:</td><td><span style=\"color: #475569;\">Email update upon administrator clearance</span></td></tr></table></div><div style=\"background-color: #f1f5f9; padding: 14px 18px; border-radius: 6px; margin-bottom: 22px;\"><p style=\"margin: 0; font-size: 13px; color: #475569; line-height: 1.5;\"><strong>No Action Required:</strong> You do not need to resubmit or create another case profile. You will receive an official confirmation at <strong>{{ $('Generate Case ID').first().json.client_email }}</strong> as soon as the review is complete.</p></div><div style=\"text-align: center; margin: 26px 0 18px 0;\"><a href=\"{{ $vars.CLIENT_PORTAL_URL }}\" target=\"_blank\" style=\"display: inline-block; background-color: #334155; color: #ffffff; padding: 13px 28px; text-decoration: none; border-radius: 6px; font-weight: 700; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.15);\">📱 Track Case on Client Portal ➔</a></div><hr style=\"border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0 16px 0;\"/><p style=\"font-size: 12px; color: #94a3b8; margin: 0; text-align: center;\">Legal Practice Management System &bull; Privileged &amp; Confidential Attorney-Client Notice</p></div></div>",
+        "options": {}
+      },
+      "id": "bc7d16f7-67de-4804-ac9a-5ac8650a42f3",
+      "name": "Send Client Conflict Pending Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        464,
+        80
+      ],
+      "webhookId": "0b8272f3-27a6-4967-b671-f280dcd9c4fe",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "sVmGKpNsTs1T3jnJ",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Generate Case ID": {
+      "main": [
+        [
+          {
+            "node": "Execute AI Document & Vault Triage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute AI Document & Vault Triage": {
+      "main": [
+        [
+          {
+            "node": "Execute Conflict Check Engine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Conflict Check Engine": {
+      "main": [
+        [
+          {
+            "node": "Register Case in Directory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger Onboarding Milestone": {
+      "main": [
+        [
+          {
+            "node": "Send Admin Intake Alert Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Admin Intake Alert Email": {
+      "main": [
+        [
+          {
+            "node": "Return Intake Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Generate Case ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Conflict Detected?": {
+      "main": [
+        [
+          {
+            "node": "Send Admin Conflict Approval Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Trigger Onboarding Milestone",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Admin Conflict Approval Email": {
+      "main": [
+        [
+          {
+            "node": "Send Client Conflict Pending Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Client Conflict Pending Email": {
+      "main": [
+        [
+          {
+            "node": "Return Intake Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Register Case in Directory": {
+      "main": [
+        [
+          {
+            "node": "Has Conflict Detected?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true,
+    "errorWorkflow": "Dvao8HFN2GnGuaQZ"
+  },
+  "versionId": "35b2a749-ae6a-418a-9bd7-1fac03e67240",
+  "meta": {
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp",
+    "instanceId": "1b7f2b8bd7379ce28884aabf2215f3c90ff32a7e4c4f1088ddd7ce0532074b6f"
+  },
+  "nodeGroups": [
+    {
+      "id": "fef44db5-75ca-4775-8aeb-f85cc861ca6b",
+      "name": "Matter Intake, Triage & Registration Pipeline",
+      "nodeIds": [
+        "889c6baf-23d3-4c9b-ad5b-b784e27ff0aa",
+        "31d15fc1-9d4b-4c97-99fd-dab81fa9d96c",
+        "fdbf65b2-4df1-496b-bd12-72a5efd6dbf9",
+        "66cfaae3-b582-46a8-8a04-614aaeecb92d"
+      ],
+      "description": "Generates Case ID, extracts AI OCR document metadata, runs conflict checks, and registers matter in directory."
+    },
+    {
+      "id": "86c5ae77-a6c6-4e8f-8310-f865a9d37906",
+      "name": "Conflict Hold Alert Pipeline",
+      "nodeIds": [
+        "1ee30124-de1b-479a-80ba-d0a329417dca",
+        "bc7d16f7-67de-4804-ac9a-5ac8650a42f3"
+      ],
+      "description": "Notifies firm administrator and client when a potential conflict of interest is flagged."
+    },
+    {
+      "id": "e3d544e4-de24-4d9d-ba58-beff03964fec",
+      "name": "Client Milestones & Admin Alerts",
+      "nodeIds": [
+        "57d40ad3-180c-4c85-8244-09b249b8da3b",
+        "00b19de1-ec68-4c2c-b4dd-e03e7ad9d8a1"
+      ],
+      "description": "Dispatches client onboarding welcome notification and administrator alert when matter is conflict-free."
+    }
+  ],
+  "id": "DXtSEaMaS4rhVExH",
+  "tags": []
+}

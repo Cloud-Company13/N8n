@@ -1,0 +1,811 @@
+{
+  "name": "AI Document Intelligence & Vault Engine (Reusable) / Judgement on unstructured content",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "case_id"
+            },
+            {
+              "name": "client_name"
+            },
+            {
+              "name": "client_email"
+            },
+            {
+              "name": "location"
+            },
+            {
+              "name": "address"
+            },
+            {
+              "name": "pincode"
+            }
+          ]
+        }
+      },
+      "id": "b0093ea3-6a15-49fd-8d10-13d3c7be8ddc",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -1248,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "rts-1",
+              "name": "case_id",
+              "type": "string",
+              "value": "={{ $json.case_id }}"
+            },
+            {
+              "id": "rts-2",
+              "name": "client_name",
+              "type": "string",
+              "value": "={{ $json.client_name }}"
+            },
+            {
+              "id": "rts-3",
+              "name": "client_email",
+              "type": "string",
+              "value": "={{ $json.client_email }}"
+            },
+            {
+              "id": "rts-4",
+              "name": "location",
+              "type": "string",
+              "value": "={{ $json.location }}"
+            },
+            {
+              "id": "rts-5",
+              "name": "address",
+              "type": "string",
+              "value": "={{ $json.address }}"
+            },
+            {
+              "id": "rts-6",
+              "name": "pincode",
+              "type": "string",
+              "value": "={{ $json.pincode }}"
+            },
+            {
+              "id": "rts-7",
+              "name": "case_status",
+              "type": "string",
+              "value": "={{ $json.case_status }}"
+            },
+            {
+              "id": "rts-8",
+              "name": "legal_proceeding_stage",
+              "type": "string",
+              "value": "={{ $json.legal_proceeding_stage }}"
+            },
+            {
+              "id": "rts-9",
+              "name": "document_url",
+              "type": "string",
+              "value": "={{ $json.document_url || \"\" }}"
+            },
+            {
+              "id": "rts-10",
+              "name": "document_title",
+              "type": "string",
+              "value": "={{ $json.document_title || \"\" }}"
+            },
+            {
+              "id": "rts-11",
+              "name": "document_category",
+              "type": "string",
+              "value": "={{ $json.document_category || \"General Matter\" }}"
+            },
+            {
+              "id": "rts-12",
+              "name": "document_summary",
+              "type": "string",
+              "value": "={{ $json.document_summary || \"\" }}"
+            },
+            {
+              "id": "rts-13",
+              "name": "urgency_level",
+              "type": "string",
+              "value": "={{ $json.urgency_level || \"Medium\" }}"
+            },
+            {
+              "id": "rts-14",
+              "name": "adverse_party",
+              "type": "string",
+              "value": "={{ $json.adverse_party || \"None\" }}"
+            },
+            {
+              "id": "rts-15",
+              "name": "jotter_url",
+              "type": "string",
+              "value": "={{ $json.jotter_url || \"\" }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "beb31b34-2a25-44b0-a1bb-943c259054e4",
+      "name": "Return Triage Summary",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1792,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "check-has-doc",
+              "leftValue": "={{ Boolean($binary && Object.keys($binary).length > 0) }}",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              },
+              "rightValue": ""
+            }
+          ],
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          }
+        },
+        "options": {}
+      },
+      "id": "94f3c292-7fa3-4c6b-b5af-27f566bc328c",
+      "name": "Has Document Uploaded?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1024,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ ($json.name || $binary.Attach_Case_Document___Notice?.fileName || '').toLowerCase() }}",
+                    "operator": {
+                      "operation": "endsWith",
+                      "type": "string"
+                    },
+                    "rightValue": ".pdf"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                }
+              },
+              "renameOutput": true,
+              "outputKey": "Pdf"
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ ($json.name || $binary.Attach_Case_Document___Notice?.fileName || '').toLowerCase() }}",
+                    "operator": {
+                      "operation": "endsWith",
+                      "type": "string"
+                    },
+                    "rightValue": ".docx"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                }
+              },
+              "renameOutput": true,
+              "outputKey": "Docx"
+            },
+            {
+              "conditions": {
+                "combinator": "or",
+                "conditions": [
+                  {
+                    "leftValue": "={{ ($json.name || $binary.Attach_Case_Document___Notice?.fileName || '').toLowerCase() }}",
+                    "operator": {
+                      "operation": "endsWith",
+                      "type": "string"
+                    },
+                    "rightValue": ".txt"
+                  },
+                  {
+                    "leftValue": "={{ ($json.name || $binary.Attach_Case_Document___Notice?.fileName || '').toLowerCase() }}",
+                    "operator": {
+                      "operation": "endsWith",
+                      "type": "string"
+                    },
+                    "rightValue": ".text"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                }
+              },
+              "renameOutput": true,
+              "outputKey": "Txt"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Fallback"
+        }
+      },
+      "id": "41a6caba-6ecb-424d-9f11-b343515482f8",
+      "name": "Check File Extension",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -240,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "binaryPropertyName": "Attach_Case_Document___Notice"
+      },
+      "id": "cfa89534-45bc-4c78-9d4c-6febc4196a37",
+      "name": "Decompress DOCX",
+      "type": "n8n-nodes-base.compression",
+      "typeVersion": 1,
+      "position": [
+        -16,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nlet extractedText = '';\n\nfor (let i = 0; i < items.length; i++) {\n  const item = items[i];\n  if (item.binary) {\n    for (const key of Object.keys(item.binary)) {\n      const b = item.binary[key];\n      const fn = (b.fileName || '').toLowerCase();\n      if (fn.includes('document.xml')) {\n        let xmlStr = '';\n        try {\n          if (this.helpers && this.helpers.getBinaryDataBuffer) {\n            const buf = await this.helpers.getBinaryDataBuffer(i, key);\n            xmlStr = buf.toString('utf8');\n          }\n        } catch(e) {}\n        \n        if (!xmlStr && b.data && b.data !== 'filesystem-v2') {\n          try {\n            xmlStr = Buffer.from(b.data, 'base64').toString('utf8');\n          } catch(e) {}\n        }\n        \n        if (xmlStr) {\n          extractedText = xmlStr\n            .replace(/<\\/w:p>/gi, '\\n')\n            .replace(/<[^>]+>/g, ' ')\n            .replace(/[ \\t]+/g, ' ')\n            .replace(/\\n\\s+/g, '\\n')\n            .trim();\n          break;\n        }\n      }\n    }\n  }\n  if (extractedText) break;\n}\n\nreturn [{\n  json: { text: extractedText || 'No text extracted from DOCX' }\n}];"
+      },
+      "id": "822fd7b5-d563-4b14-934b-29026216e084",
+      "name": "Extract DOCX Text",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "Attach_Case_Document___Notice",
+        "options": {
+          "keepSource": "both"
+        }
+      },
+      "id": "83f1b025-323e-48dd-aa1a-14608cc41f03",
+      "name": "Extract Document Text",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        208,
+        -128
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{json: {text: 'No readable text. File format not supported for AI context.'}}];"
+      },
+      "id": "e577c905-af36-4194-a8ef-2f142a529ab0",
+      "name": "No Text Fallback",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ \"Client: \" + ($('Execute Workflow Trigger').first().json.client_name || 'Client') + \"\\nText:\\n\" + ($json.text || 'No readable text').slice(0, 3500) }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are a legal intake triage specialist. Read the document text and return pure JSON with keys:\n- document_title: Formal title of the document.\n- document_category: One of (Court Summons, Statutory Notice, Commercial Contract, Police Complaint / FIR, Petition, Evidence, General Matter).\n- document_summary: Return 3 to 4 concise bullet points (each starting with '• ') capturing:\n  • Core dispute & specific allegations\n  • Key parties involved (Complainant vs Respondent / Advocate)\n  • Primary claims, demands, or relief sought\n  • Critical dates, limitation deadline, or response window\n  Do NOT write a dense paragraph or clustered text. Each point MUST be on its own line starting with '• '.\n- urgency_level: Emergency (court/limitation < 72h or arrest/stay), High (summons/statutory 7-15 day notice), Medium (general dispute/contract), Low (advisory/filing).\n- adverse_party: Specific opposing individual, company, or entity (or 'None').\n\nRespond ONLY with a valid JSON object, no introductory or trailing text."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "id": "7ea375f4-dee3-411e-b4e8-e952922ed569",
+      "name": "AI Document Triage",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        432,
+        160
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "model": "={{ $vars.AI_LLM_MODEL }}",
+        "options": {
+          "responseFormat": "json_object",
+          "temperature": 0.5
+        }
+      },
+      "id": "a9b122ef-7b2e-4a8f-9ae2-3cb4bec7a822",
+      "name": "OpenRouter Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        512,
+        384
+      ],
+      "credentials": {
+        "openRouterApi": {
+          "id": "tmHXHEBBEKN6lYB3",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "let parsed = {};\n\nif ($json.document_title || $json.document_summary || $json.document_category) {\n  parsed = { ...$json };\n} else {\n  const raw = ($json.choices && $json.choices[0] && $json.choices[0].message && $json.choices[0].message.content) ||\n              ($json.body && $json.body.choices && $json.body.choices[0] && $json.body.choices[0].message && $json.body.choices[0].message.content) ||\n              $json.text ||\n              $json.response || '';\n  if (raw) {\n    try {\n      parsed = JSON.parse(raw.trim());\n    } catch (e) {\n      try {\n        const match = raw.match(/\\{[\\s\\S]*\\}/);\n        if (match) {\n          parsed = JSON.parse(match[0]);\n        }\n      } catch (e2) {\n        parsed = {};\n      }\n    }\n  }\n}\n\nlet summaryText = parsed.document_summary || $json.document_summary || '• Document uploaded and filed in case vault.';\nif (Array.isArray(summaryText)) {\n  summaryText = summaryText.map(pt => pt.startsWith('•') ? pt : '• ' + pt).join('\\n');\n} else if (typeof summaryText === 'string') {\n  const lines = summaryText.split('\\n').filter(l => l.trim().length > 0);\n  summaryText = lines.map(l => l.trim().startsWith('•') ? l.trim() : '• ' + l.trim()).join('\\n');\n}\n\nconst driveNode = $('Upload to Google Drive Vault').first();\nconst driveUrl = driveNode && driveNode.json ? (driveNode.json.webViewLink || ('https://drive.google.com/file/d/' + driveNode.json.id + '/view')) : '';\nconst caseData = $('Execute Workflow Trigger').first().json;\n\nreturn [\n  {\n    json: {\n      case_id: caseData.case_id,\n      client_name: caseData.client_name,\n      client_email: caseData.client_email,\n      location: caseData.location,\n      address: caseData.address,\n      pincode: caseData.pincode,\n      case_status: caseData.case_status,\n      legal_proceeding_stage: caseData.legal_proceeding_stage,\n      document_url: driveUrl,\n      document_title: parsed.document_title || $json.document_title || 'Legal Notice / Filing',\n      document_category: parsed.document_category || $json.document_category || 'Statutory Notice',\n      document_summary: summaryText,\n      urgency_level: parsed.urgency_level || $json.urgency_level || 'Medium',\n      adverse_party: parsed.adverse_party || $json.adverse_party || 'None'\n    }\n  }\n];"
+      },
+      "id": "a34cffec-27ef-414b-9422-59fb3796dca2",
+      "name": "Parse AI Triage Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        784,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "inputDataFieldName": "Attach_Case_Document___Notice",
+        "name": "=Case-{{ $('Execute Workflow Trigger').first().json.case_id }}-{{ $binary.Attach_Case_Document___Notice.fileName || 'Document' }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "root"
+        },
+        "options": {}
+      },
+      "id": "a6198ceb-835b-43f5-b63e-feefc1b0c137",
+      "name": "Upload to Google Drive Vault",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -736,
+        128
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "3wppgCNBz42xvM8u",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const caseData = $('Execute Workflow Trigger').first().json;\n\nreturn [{\n  json: {\n    case_id: caseData.case_id,\n    client_name: caseData.client_name,\n    client_email: caseData.client_email,\n    location: caseData.location,\n    address: caseData.address,\n    pincode: caseData.pincode,\n    case_status: caseData.case_status,\n    legal_proceeding_stage: caseData.legal_proceeding_stage,\n    document_url: '',\n    document_title: 'No Document Attached',\n    document_category: 'General Matter',\n    document_summary: 'Initial intake completed without attached case documents.',\n    urgency_level: 'Medium',\n    adverse_party: 'None',\n    jotter_url: ''\n  }\n}];"
+      },
+      "id": "aecb0edb-d917-4057-a093-c992369102a9",
+      "name": "Default Vault Metadata",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1296,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const incomingJson = $input.first().json;\nlet origBinary = null;\ntry {\n  origBinary = $('Execute Workflow Trigger').first().binary?.Attach_Case_Document___Notice;\n} catch (e) {\n  origBinary = null;\n}\n\nif (!origBinary) {\n  return [{ json: incomingJson }];\n}\n\nconst binCopy = { ...origBinary };\nconst fn = (binCopy.fileName || incomingJson.name || '').toLowerCase();\nif (fn.endsWith('.docx')) {\n  binCopy.fileExtension = 'zip';\n  binCopy.mimeType = 'application/zip';\n  binCopy.fileName = (binCopy.fileName || 'document.docx').replace(/\\.docx$/i, '.zip');\n}\n\nreturn [{\n  json: incomingJson,\n  binary: {\n    Attach_Case_Document___Notice: binCopy\n  }\n}];"
+      },
+      "id": "1cdc543c-8411-49e1-871a-59ed27f96091",
+      "name": "Restore File Binary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -512,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "createFromText",
+        "content": "={{ `LEGALSPACE AI LAW ASSOCIATES\nCASE JOTTER NOTE & AI DOCUMENT SUMMARY\n----------------------------------------------------------------------\n\nMATTER IDENTIFICATION:\n• Case Reference ID: ${$('Parse AI Triage Output').first().json.case_id}\n• Client Name: ${$('Parse AI Triage Output').first().json.client_name}\n• Opposing / Adverse Party: ${$('Parse AI Triage Output').first().json.adverse_party}\n• Legal Category: ${$('Parse AI Triage Output').first().json.document_category}\n• Urgency Assessment: ${$('Parse AI Triage Output').first().json.urgency_level} PRIORITY\n• Location: ${$('Parse AI Triage Output').first().json.location} (PIN: ${$('Parse AI Triage Output').first().json.pincode})\n• Date of Intake: ${$now.setZone('Asia/Kolkata').toFormat('dd LLL yyyy, HH:mm')}\n\n----------------------------------------------------------------------\nAI LEGAL INTELLIGENCE SUMMARY & CASE BRIEFS:\n----------------------------------------------------------------------\n${$('Parse AI Triage Output').first().json.document_summary}\n` }}",
+        "name": "=Jotter Note - Case #{{ $('Parse AI Triage Output').first().json.case_id }} - {{ $('Parse AI Triage Output').first().json.document_title }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "root"
+        },
+        "options": {
+          "convertToGoogleDocument": true
+        }
+      },
+      "id": "77ac7b53-906b-4608-afaa-cb84e410c693",
+      "name": "Create Jotter Document",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1072,
+        160
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "3wppgCNBz42xvM8u",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "share",
+        "fileId": "={{ $json.id }}",
+        "permissionsUi": {
+          "permissionsValues": {
+            "role": "reader",
+            "type": "anyone"
+          }
+        },
+        "options": {}
+      },
+      "id": "4c238f8b-88e7-4fcf-9d74-d44e446aa457",
+      "name": "Share Jotter Document",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1296,
+        160
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "3wppgCNBz42xvM8u",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const triage = $('Parse AI Triage Output').first().json;\nconst driveDoc = $('Create Jotter Document').first().json;\nconst jotterId = driveDoc.id;\nconst jotterUrl = driveDoc.webViewLink || ('https://drive.google.com/file/d/' + jotterId + '/view');\n\nreturn [{\n  json: {\n    ...triage,\n    jotter_url: jotterUrl\n  }\n}];"
+      },
+      "id": "15d8d406-0ffd-43b5-803d-47143501b693",
+      "name": "Assemble Triage Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first();\nlet text = '';\ntry {\n  if (item.binary && item.binary.Attach_Case_Document___Notice) {\n    const buf = await this.helpers.getBinaryDataBuffer(0, 'Attach_Case_Document___Notice');\n    text = buf.toString('utf8');\n  }\n} catch (e) {\n  try {\n    if (item.binary && item.binary.Attach_Case_Document___Notice && item.binary.Attach_Case_Document___Notice.data) {\n      text = Buffer.from(item.binary.Attach_Case_Document___Notice.data, 'base64').toString('utf8');\n    }\n  } catch (e2) {}\n}\n\nreturn [{ json: { text: text || 'No text extracted from TXT file' } }];"
+      },
+      "id": "48eae12c-2182-466a-9a03-f45ff473dfc3",
+      "name": "Extract TXT Text",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        256
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Has Document Uploaded?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Document Uploaded?": {
+      "main": [
+        [
+          {
+            "node": "Upload to Google Drive Vault",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Default Vault Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload to Google Drive Vault": {
+      "main": [
+        [
+          {
+            "node": "Restore File Binary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Restore File Binary": {
+      "main": [
+        [
+          {
+            "node": "Check File Extension",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check File Extension": {
+      "main": [
+        [
+          {
+            "node": "Extract Document Text",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Decompress DOCX",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract TXT Text",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Text Fallback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decompress DOCX": {
+      "main": [
+        [
+          {
+            "node": "Extract DOCX Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Document Text": {
+      "main": [
+        [
+          {
+            "node": "AI Document Triage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract DOCX Text": {
+      "main": [
+        [
+          {
+            "node": "AI Document Triage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "No Text Fallback": {
+      "main": [
+        [
+          {
+            "node": "AI Document Triage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Document Triage",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Document Triage": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Triage Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Vault Metadata": {
+      "main": [
+        [
+          {
+            "node": "Return Triage Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Triage Output": {
+      "main": [
+        [
+          {
+            "node": "Create Jotter Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Jotter Document": {
+      "main": [
+        [
+          {
+            "node": "Share Jotter Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Share Jotter Document": {
+      "main": [
+        [
+          {
+            "node": "Assemble Triage Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assemble Triage Output": {
+      "main": [
+        [
+          {
+            "node": "Return Triage Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract TXT Text": {
+      "main": [
+        [
+          {
+            "node": "AI Document Triage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true,
+    "errorWorkflow": "Dvao8HFN2GnGuaQZ"
+  },
+  "versionId": "f09ac320-3871-4d87-b174-d56e2685e9e2",
+  "meta": {
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp",
+    "instanceId": "1b7f2b8bd7379ce28884aabf2215f3c90ff32a7e4c4f1088ddd7ce0532074b6f"
+  },
+  "nodeGroups": [
+    {
+      "id": "grp-vault-storage",
+      "name": "Document Vault Storage",
+      "nodeIds": [
+        "a6198ceb-835b-43f5-b63e-feefc1b0c137",
+        "1cdc543c-8411-49e1-871a-59ed27f96091"
+      ],
+      "description": "Receives attached legal documents and archives them securely to Google Drive Case Vault."
+    },
+    {
+      "id": "8e91a28f-f789-4b27-8714-33ad064a0822",
+      "name": "DOCX Text Decompression Pipeline",
+      "nodeIds": [
+        "cfa89534-45bc-4c78-9d4c-6febc4196a37",
+        "822fd7b5-d563-4b14-934b-29026216e084"
+      ],
+      "description": "Decompresses DOCX archive and parses document XML text."
+    },
+    {
+      "id": "8c4cf012-873f-4582-85e7-3e9826a7429f",
+      "name": "Jotter Note Document Dispatch & Parsing",
+      "nodeIds": [
+        "a34cffec-27ef-414b-9422-59fb3796dca2",
+        "77ac7b53-906b-4608-afaa-cb84e410c693",
+        "4c238f8b-88e7-4fcf-9d74-d44e446aa457",
+        "15d8d406-0ffd-43b5-803d-47143501b693"
+      ],
+      "description": "Parses AI classification output, generates Jotter note Google Doc, shares permissions, and formats response payload."
+    }
+  ],
+  "id": "MhACOAVzwadGpUYN",
+  "tags": []
+}
