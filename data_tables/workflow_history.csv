@@ -1,0 +1,2 @@
+case_id,execution_id,invoice_id,invoice_status,amount,requester_name,requester_role,applied_threshold,decision,decision_by,outcome_status,final_status,updated_by
+CASE-2026-001,EXEC-8912,INV-2026-01,Approved,2500,Apex Global Ltd,Client,5000,Auto-Approved,System Engine,Completed,Processed,admin@firm.com

@@ -1,0 +1,4 @@
+record_type,user_role,allowed_roles,allowed_actions,action
+invoice,Firm Admin,"Admin,Manager","view,approve,reject,generate",all
+invoice,Client,Client,"view,pay",view
+case,Advocate,"Advocate,Admin","view,update,upload",update

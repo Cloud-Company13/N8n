@@ -1,0 +1,2 @@
+execution_id,workflow_name,failed_node,error_message,execution_url,timestamp
+TEST-EXEC-001,Universal Matter Intake Engine,None,System initialized successfully,http://localhost:5678,2026-11-13T11:00:00Z
