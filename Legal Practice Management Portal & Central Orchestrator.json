@@ -1,0 +1,4586 @@
+{
+  "name": "Legal Practice Management Portal & Central Orchestrator",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Legal Practice Management Portal",
+        "formDescription": "Step 1 — Select your role to manage case intake review, advocate assignment, milestones, or billing.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "User Type",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Advocate"
+                  },
+                  {
+                    "option": "Assistant for Advocate"
+                  },
+                  {
+                    "option": "Client"
+                  },
+                  {
+                    "option": "Firm Administrator"
+                  }
+                ]
+              },
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "buttonLabel": "Continue to Action Selection ➔"
+        }
+      },
+      "id": "fc79976c-bcad-4285-a386-3e83bda741b9",
+      "name": "Invoice Event",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        -4544,
+        1088
+      ],
+      "webhookId": "823e368f-b87a-4251-a8c0-968897515f4c"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "has-permission-1",
+              "leftValue": "={{ ($('Validate Permission').first().json.allowed_actions || []).length > 0 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "04f590c9-48ac-4d10-9469-ddeec0a7024f",
+      "name": "Has Permission",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -4032,
+        1328
+      ]
+    },
+    {
+      "parameters": {
+        "defineForm": "json",
+        "jsonOutput": "={{ JSON.stringify([{ fieldLabel: \"Action\", fieldType: \"dropdown\", requiredField: true, fieldOptions: { values: ($('Validate Permission').first().json.allowed_actions || []).filter(a => !['approve', 'reject'].includes(a.toString().toLowerCase().trim())).map(a => ({ option: a })) } }]) }}",
+        "options": {
+          "formTitle": "Legal Practice Management Portal",
+          "formDescription": "Step 2 — Select the action you wish to perform based on your authorized role.",
+          "buttonLabel": "Continue to Action ➔"
+        }
+      },
+      "id": "452ca2fc-f184-4699-bdc8-8db1736bbfd2",
+      "name": "Select Action",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        -3792,
+        704
+      ],
+      "webhookId": "50673489-dc17-4149-9454-3238516dfc8f"
+    },
+    {
+      "parameters": {
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Case ID",
+              "placeholder": "Enter Case ID (e.g. 996178, 332312)",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Amount",
+              "fieldType": "number",
+              "placeholder": "Enter invoice amount",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Requester Name",
+              "placeholder": "Enter requester name (must match registered client name)",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "formTitle": "Generate Practice Billing Invoice",
+          "formDescription": "Step 3 — Enter invoice parameters. The Invoice ID will be generated automatically and routed for approval.",
+          "buttonLabel": "Generate & Route Invoice ➔"
+        }
+      },
+      "id": "feef2cb0-f2dd-4a16-9447-ea68e3ea4125",
+      "name": "Invoice Details",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        -3280,
+        704
+      ],
+      "webhookId": "8a1a919f-e26c-4456-bb27-f22c68bf5ae3"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ip2",
+              "name": "amount",
+              "type": "number",
+              "value": "={{ $('Invoice Details').first().json['Amount'] }}"
+            },
+            {
+              "id": "ip4",
+              "name": "status",
+              "type": "string",
+              "value": ""
+            },
+            {
+              "id": "ip5",
+              "name": "created_at",
+              "type": "string",
+              "value": "={{ $now.toISO() }}"
+            },
+            {
+              "id": "ip6",
+              "name": "requester_name",
+              "type": "string",
+              "value": "={{ $('Invoice Details').first().json['Requester Name'] }}"
+            },
+            {
+              "id": "ip7",
+              "name": "requester_role",
+              "type": "string",
+              "value": "={{ $('Validate Permission').first().json.user_role }}"
+            },
+            {
+              "id": "ip8",
+              "name": "action",
+              "type": "string",
+              "value": "={{ $('Select Action').first().json.Action }}"
+            },
+            {
+              "id": "ip9",
+              "name": "case_id",
+              "type": "string",
+              "value": "={{ ($('Invoice Details').first().json['Case ID'] || '').toString().trim().toUpperCase() }}"
+            },
+            {
+              "id": "ip10",
+              "name": "allowed_roles",
+              "type": "string",
+              "value": ""
+            },
+            {
+              "id": "ip11",
+              "name": "notify_email",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7249dd6d-ca6a-4f2e-84f5-d87a13c78c0f",
+      "name": "Invoice Payload",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -3056,
+        704
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "is-generate",
+              "leftValue": "={{ ($json.action || '').toLowerCase() }}",
+              "operator": {
+                "operation": "equals",
+                "type": "string"
+              },
+              "rightValue": "generate"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "15b5a660-16ce-4fa5-9a2e-363145422dfe",
+      "name": "Is Generate Action?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -2832,
+        704
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "Invoice Generated Successfully",
+        "completionMessage": "Invoice generated successfully",
+        "options": {
+          "formTitle": "Invoice Generated Successfully"
+        }
+      },
+      "id": "e5a40edd-f4b3-4653-889d-5e0b2026c48a",
+      "name": "Done",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        -1264,
+        800
+      ],
+      "webhookId": "9d2216be-eb0e-4769-9e16-8c8959cc066b"
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "No invoice access",
+        "completionMessage": "={{ $('Validate Permission').first().json.reason }}",
+        "options": {
+          "formTitle": "Access Restricted"
+        }
+      },
+      "id": "bf024abf-093d-407f-911d-9438d745c844",
+      "name": "Permission Denied",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        -3808,
+        1424
+      ],
+      "webhookId": "3ec19ea8-d619-4507-bef0-87cf6d8b5898"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "action-is-generate",
+                    "leftValue": "={{ ($json.Action || $json.action || '').toString().toLowerCase().trim() }}",
+                    "operator": {
+                      "operation": "equals",
+                      "type": "string"
+                    },
+                    "rightValue": "generate"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                }
+              },
+              "renameOutput": true,
+              "outputKey": "Generate Invoice"
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "action-is-view",
+                    "leftValue": "={{ ($json.Action || $json.action || '').toString().toLowerCase().trim() }}",
+                    "operator": {
+                      "operation": "equals",
+                      "type": "string"
+                    },
+                    "rightValue": "view"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                }
+              },
+              "renameOutput": true,
+              "outputKey": "View Action"
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "action-is-closure",
+                    "leftValue": "={{ ($json.Action || $json.action || '').toString().toLowerCase().trim() }}",
+                    "operator": {
+                      "operation": "equals",
+                      "type": "string"
+                    },
+                    "rightValue": "closure"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                }
+              },
+              "renameOutput": true,
+              "outputKey": "Case Closure"
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "action-is-waiver",
+                    "leftValue": "={{ ($json.Action || $json.action || '').toString().toLowerCase().trim() }}",
+                    "operator": {
+                      "operation": "equals",
+                      "type": "string"
+                    },
+                    "rightValue": "waiver"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                }
+              },
+              "renameOutput": true,
+              "outputKey": "Administrative Waiver"
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "action-is-download-update",
+                    "leftValue": "={{ ['download', 'update'].includes(($json.Action || $json.action || '').toString().toLowerCase().trim()) }}",
+                    "operator": {
+                      "operation": "true",
+                      "singleValue": true,
+                      "type": "boolean"
+                    },
+                    "rightValue": true
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                }
+              },
+              "renameOutput": true,
+              "outputKey": "Download / Update Invoices"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Other Actions"
+        }
+      },
+      "id": "c8a6fe75-3509-4542-996b-ac34c9abc24f",
+      "name": "Action Router",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -3568,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "Action Under Construction",
+        "completionMessage": "=<h3>Action Not Yet Implemented</h3><p>The action <strong>{{ $('Select Action').first().json.Action }}</strong> is scheduled for a future release.</p><p>Currently active actions:</p><ul><li><strong>generate</strong>: Submit new invoice with 3-tier approval hierarchy</li><li><strong>view</strong> / <strong>download</strong>: Search, view, print and download approved case invoices</li><li><strong>update</strong>: Edit invoice data in workflow history</li></ul>",
+        "options": {
+          "formTitle": "Action Not Available"
+        }
+      },
+      "id": "99364d1f-9eb1-4d17-b114-d0e2be402af8",
+      "name": "Action Not Supported",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        -3184,
+        1184
+      ],
+      "webhookId": "bbc089ea-1935-4ea4-b1dc-1e1660950875"
+    },
+    {
+      "parameters": {
+        "defineForm": "json",
+        "jsonOutput": "={{ (() => {\n  const userType = ($('Invoice Event').first().json['User Type'] || '').trim();\n  const isFirmAdmin = userType === 'Firm Administrator';\n\n  const fields = [\n    {\n      fieldLabel: \"Case ID\",\n      placeholder: \"e.g. 332312, 996178, 205972\",\n      requiredField: true\n    }\n  ];\n\n  if (!isFirmAdmin) {\n    fields.push({\n      fieldLabel: \"Notify Email\",\n      fieldType: \"email\",\n      placeholder: \"Enter registered email for your selected role (Client / Assigned Advocate)\",\n      requiredField: true\n    });\n  }\n\n  fields.push(\n    {\n      fieldLabel: \"Invoice ID\",\n      placeholder: \"Optional: leave blank to list all invoices\"\n    },\n    {\n      fieldLabel: \"From Date\",\n      fieldType: \"date\"\n    },\n    {\n      fieldLabel: \"To Date\",\n      fieldType: \"date\"\n    }\n  );\n\n  return JSON.stringify(fields);\n})() }}",
+        "options": {
+          "formTitle": "Case & Record Verification",
+          "formDescription": "={{ $('Invoice Event').first().json['User Type'] === 'Firm Administrator' ? 'Step 3 — Enter Case ID to search and retrieve billing invoices.' : 'Step 3 — Enter Case ID and your authorized email to verify access before proceeding.' }}",
+          "buttonLabel": "Verify Case & Proceed ➔"
+        }
+      },
+      "id": "978c82f8-971d-49b0-b215-6b52e18eb95b",
+      "name": "Search Invoices Form",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        -2816,
+        544
+      ],
+      "webhookId": "9f478f5d-6bd2-49c7-a3bb-78dea68f414e"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "sc1",
+              "name": "search_case_id",
+              "type": "string",
+              "value": "={{ ($json['Case ID'] || '').toString().trim().toUpperCase() }}"
+            },
+            {
+              "id": "sc2",
+              "name": "search_invoice_id",
+              "type": "string",
+              "value": "={{ ($json['Invoice ID'] || '').toString().trim() }}"
+            },
+            {
+              "id": "sc3",
+              "name": "search_from_date",
+              "type": "string",
+              "value": "={{ $json['From Date'] || '' }}"
+            },
+            {
+              "id": "sc4",
+              "name": "search_to_date",
+              "type": "string",
+              "value": "={{ $json['To Date'] || '' }}"
+            },
+            {
+              "id": "sc5",
+              "name": "search_email",
+              "type": "string",
+              "value": "={{ ($json['Notify Email'] || ($('Invoice Event').first().json['User Type'] === 'Firm Administrator' ? $vars.FIRM_ADMIN_EMAIL : '')).toString().trim().toLowerCase() }}"
+            },
+            {
+              "id": "sc6",
+              "name": "requested_action",
+              "type": "string",
+              "value": "={{ (() => {\n  if ($('Search Case Form').isExecuted) return 'view_case';\n  if ($('Select Client Action Form').isExecuted) {\n    const act = (($('Select Client Action Form').first().json['Select Action'] || $('Select Client Action Form').first().json['Action'] || '')).toString().toLowerCase().trim();\n    return act.includes('download') ? 'download' : 'view_invoice';\n  }\n  if ($('Invoice Event').first().json['User Type'] === 'Client') {\n    return 'view_invoice';\n  }\n  if ($('Select Action').isExecuted) {\n    const act = ($('Select Action').first().json.Action || '').toString().toLowerCase().trim();\n    if (act === 'download') return 'download';\n    if (act === 'update') return 'update';\n    return 'view_invoice';\n  }\n  return 'view_invoice';\n})() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ce2f2397-01b7-4bea-83f8-2c85ededc027",
+      "name": "Search Criteria",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -2528,
+        752
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "cachedResultName": "case_directory",
+          "mode": "id",
+          "value": "={{ $vars.TABLE_CASE_DIRECTORY || 'PFF0bSgccDIC5E5T' }}"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "case_id",
+              "condition": "ilike",
+              "keyValue": "={{ $('Search Criteria').first().json.search_case_id }}"
+            }
+          ]
+        },
+        "limit": 1
+      },
+      "id": "b3162217-4601-4b60-923e-96e374276098",
+      "name": "Verify Case Directory",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -2304,
+        752
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "auth-check",
+              "leftValue": "={{ Boolean($json.case_id) && ($('Invoice Event').first().json['User Type'] === 'Firm Administrator' || $('Search Criteria').first().json.search_email === ($('Invoice Event').first().json['User Type'] === 'Client' ? ($json.case_owner_email || '').toLowerCase().trim() : ['Advocate', 'Assistant for Advocate'].includes($('Invoice Event').first().json['User Type']) ? ($json.advocate_email || '').toLowerCase().trim() : ($json.firm_admin_email || $vars.FIRM_ADMIN_EMAIL).toLowerCase().trim())) }}",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              },
+              "rightValue": true
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          }
+        },
+        "options": {}
+      },
+      "id": "1fd8d3d5-a6f4-4717-bc4f-b7d08269100f",
+      "name": "Is Authorized Case Contact?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -2064,
+        608
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "Access Denied: Verification Failed",
+        "completionMessage": "={{ \"<h3>⛔ Access Denied: Contact Verification Failed</h3><p>The email address <strong>\" + $('Search Criteria').first().json.search_email + \"</strong> is not authorized for Case <strong>#\" + $('Search Criteria').first().json.search_case_id + \"</strong> under the <strong>\" + $('Invoice Event').first().json['User Type'] + \"</strong> profile.</p><table border='1' cellpadding='8' cellspacing='0' style='border-collapse: collapse; margin: 12px 0; font-size: 13px; width: 100%;'><tr style='background: #f8fafc;'><td style='width: 35%; font-weight: bold;'>Role Selected</td><td>\" + $('Invoice Event').first().json['User Type'] + \"</td></tr><tr><td style='font-weight: bold;'>Required Email</td><td>\" + ($('Invoice Event').first().json['User Type'] === 'Client' ? 'Registered Client Contact Email on file' : ($('Invoice Event').first().json['User Type'] === 'Firm Administrator' ? ('Registered Firm Administrator Email (' + ($json.firm_admin_email || $vars.FIRM_ADMIN_EMAIL) + ')') : ($json.advocate_email ? ('Assigned Advocate Email (' + $json.advocate_email + ')') : 'Case has no assigned Advocate yet (must be assigned by Firm Admin)'))) + \"</td></tr></table><p style='color: #64748b; font-size: 13px;'>Under firm compliance policies, each portal role must authenticate with its registered email address.</p>\" }}",
+        "options": {
+          "formTitle": "Authentication Verification Failed"
+        }
+      },
+      "id": "049cb344-44e5-4134-925e-d139bd9092bd",
+      "name": "Access Denied Alert",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        -1840,
+        736
+      ],
+      "webhookId": "8338d8bd-2bbd-41c0-8f81-2560d3896af6"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "cachedResultName": "workflow_history",
+          "mode": "id",
+          "value": "={{ $vars.TABLE_WORKFLOW_HISTORY || 'zLUIArHa9Po3oyoW' }}"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "case_id",
+              "condition": "ilike",
+              "keyValue": "={{ $('Search Criteria').first().json.search_case_id }}"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "id": "fdf4e137-b056-403d-a5ff-5ae8eec91ed2",
+      "name": "Get Case Invoices",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -1328,
+        1056
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "invoices-exist-check",
+              "leftValue": "={{ $('Get Case Invoices').all().filter(item => Boolean(item.json.invoice_id) && !['milestone_update', 'urgency_level_updated'].includes((item.json.decision || '').toString().toLowerCase().trim()) && (!$('Search Criteria').first().json.search_invoice_id || (item.json.invoice_id || '').toString().toLowerCase().trim() === $('Search Criteria').first().json.search_invoice_id.toLowerCase()) && (!$('Search Criteria').first().json.search_from_date || item.json.timestamp >= $('Search Criteria').first().json.search_from_date) && (!$('Search Criteria').first().json.search_to_date || item.json.timestamp <= $('Search Criteria').first().json.search_to_date + 'T23:59:59.999Z')).length > 0 }}",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              },
+              "rightValue": true
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          }
+        },
+        "options": {}
+      },
+      "id": "036e3ae5-a4e8-49f5-8b98-3158bf8e9d78",
+      "name": "Any Invoices Found?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1104,
+        1056
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "No Invoices Found",
+        "completionMessage": "=<h3>📁 No Invoices Found</h3><p>No billing invoices have been generated yet for Case <strong>#{{ $('Search Criteria').first().json.search_case_id }}</strong>.</p>",
+        "options": {
+          "formTitle": "No Matching Invoices Found"
+        }
+      },
+      "id": "8c9f880f-a21a-428d-98e5-91ca58ca3885",
+      "name": "No Invoices Found",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        -880,
+        1152
+      ],
+      "webhookId": "0f541bdd-e1cf-457d-a136-d229e0197829"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "single-invoice-check",
+              "leftValue": "={{ Boolean($('Search Criteria').first().json.search_invoice_id) || new Set($('Get Case Invoices').all().filter(item => Boolean(item.json.invoice_id) && !['milestone_update', 'urgency_level_updated'].includes((item.json.decision || '').toString().toLowerCase().trim()) && (!$('Search Criteria').first().json.search_from_date || item.json.timestamp >= $('Search Criteria').first().json.search_from_date) && (!$('Search Criteria').first().json.search_to_date || item.json.timestamp <= $('Search Criteria').first().json.search_to_date + 'T23:59:59.999Z')).map(item => (item.json.invoice_id || '').toString().trim())).size === 1 }}",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              },
+              "rightValue": true
+            }
+          ],
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          }
+        },
+        "options": {}
+      },
+      "id": "346d81ea-680e-4de7-8d88-30429ab35633",
+      "name": "Has Single or Specific Invoice?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -880,
+        960
+      ]
+    },
+    {
+      "parameters": {
+        "defineForm": "json",
+        "jsonOutput": "={{ JSON.stringify([{ fieldLabel: \"Select Invoice\", fieldType: \"dropdown\", requiredField: true, fieldOptions: { values: [...new Set($('Get Case Invoices').all().filter(item => Boolean(item.json.invoice_id) && !['milestone_update', 'urgency_level_updated'].includes((item.json.decision || '').toString().toLowerCase().trim()) && (!$('Search Criteria').first().json.search_from_date || item.json.timestamp >= $('Search Criteria').first().json.search_from_date) && (!$('Search Criteria').first().json.search_to_date || item.json.timestamp <= $('Search Criteria').first().json.search_to_date + 'T23:59:59.999Z')).map(item => (item.json.invoice_id || '').toString().trim()))].map(id => { const row = $('Get Case Invoices').all().find(r => (r.json.invoice_id || '').toString().trim() === id && r.json.final_status !== 'In Progress') || $('Get Case Invoices').all().find(r => (r.json.invoice_id || '').toString().trim() === id); const amt = row?.json?.amount ? (' — ₹' + Number(row.json.amount).toLocaleString('en-IN')) : ''; const st = row?.json?.final_status || row?.json?.decision || 'Recorded'; return { option: id + amt + ' (' + st + ')' }; }) } }]) }}",
+        "options": {
+          "formTitle": "Select Invoice Record",
+          "formDescription": "=Multiple invoices were found for Case {{ $('Search Criteria').first().json.search_case_id }}. Select the invoice you wish to view or download.",
+          "buttonLabel": "Proceed with Selected Invoice ➔"
+        }
+      },
+      "id": "a5e7d9b4-1b2f-422e-9c3a-a661b90278a1",
+      "name": "Select Invoice Form",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        -656,
+        896
+      ],
+      "webhookId": "7198d068-1a08-46e0-b3c2-08d5de915d41"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "pir1",
+              "name": "target_id",
+              "type": "string",
+              "value": "={{ ($json['Select Invoice'] ? $json['Select Invoice'].split(' ')[0].trim() : ($('Search Criteria').first().json.search_invoice_id || $json.invoice_id || '').toString().trim()) }}"
+            },
+            {
+              "id": "pir2",
+              "name": "invoice_id",
+              "type": "string",
+              "value": "={{ ($('Get Case Invoices').all().find(r => (r.json.invoice_id || '').toString().toLowerCase().trim() === ($json['Select Invoice'] ? $json['Select Invoice'].split(' ')[0].trim().toLowerCase() : ($('Search Criteria').first().json.search_invoice_id || $json.invoice_id || '').toString().toLowerCase().trim()))?.json?.invoice_id) || ($json['Select Invoice'] ? $json['Select Invoice'].split(' ')[0].trim() : ($('Search Criteria').first().json.search_invoice_id || $json.invoice_id || 'INV-001')) }}"
+            },
+            {
+              "id": "pir3",
+              "name": "amount",
+              "type": "number",
+              "value": "={{ Number(($('Get Case Invoices').all().find(r => (r.json.invoice_id || '').toString().toLowerCase().trim() === ($json['Select Invoice'] ? $json['Select Invoice'].split(' ')[0].trim().toLowerCase() : ($('Search Criteria').first().json.search_invoice_id || $json.invoice_id || '').toString().toLowerCase().trim()))?.json?.amount) || 0) }}"
+            },
+            {
+              "id": "pir5",
+              "name": "case_id",
+              "type": "string",
+              "value": "={{ ($('Get Case Invoices').all().find(r => (r.json.invoice_id || '').toString().toLowerCase().trim() === ($json['Select Invoice'] ? $json['Select Invoice'].split(' ')[0].trim().toLowerCase() : ($('Search Criteria').first().json.search_invoice_id || $json.invoice_id || '').toString().toLowerCase().trim()))?.json?.case_id) || ($('Search Criteria').first().json.search_case_id || '').toString().trim().toUpperCase() }}"
+            },
+            {
+              "id": "pir6",
+              "name": "requester_name",
+              "type": "string",
+              "value": "={{ ($('Get Case Invoices').all().find(r => (r.json.invoice_id || '').toString().toLowerCase().trim() === ($json['Select Invoice'] ? $json['Select Invoice'].split(' ')[0].trim().toLowerCase() : ($('Search Criteria').first().json.search_invoice_id || $json.invoice_id || '').toString().toLowerCase().trim()))?.json?.requester_name) || 'Client' }}"
+            },
+            {
+              "id": "pir7",
+              "name": "requester_role",
+              "type": "string",
+              "value": "={{ ($('Get Case Invoices').all().find(r => (r.json.invoice_id || '').toString().toLowerCase().trim() === ($json['Select Invoice'] ? $json['Select Invoice'].split(' ')[0].trim().toLowerCase() : ($('Search Criteria').first().json.search_invoice_id || $json.invoice_id || '').toString().toLowerCase().trim()))?.json?.requester_role) || $('Invoice Event').first().json['User Type'] }}"
+            },
+            {
+              "id": "pir8",
+              "name": "decision",
+              "type": "string",
+              "value": "={{ ($('Get Case Invoices').all().find(r => (r.json.invoice_id || '').toString().toLowerCase().trim() === ($json['Select Invoice'] ? $json['Select Invoice'].split(' ')[0].trim().toLowerCase() : ($('Search Criteria').first().json.search_invoice_id || $json.invoice_id || '').toString().toLowerCase().trim()))?.json?.decision) || 'Approved' }}"
+            },
+            {
+              "id": "pir9",
+              "name": "decision_by",
+              "type": "string",
+              "value": "={{ ($('Get Case Invoices').all().find(r => (r.json.invoice_id || '').toString().toLowerCase().trim() === ($json['Select Invoice'] ? $json['Select Invoice'].split(' ')[0].trim().toLowerCase() : ($('Search Criteria').first().json.search_invoice_id || $json.invoice_id || '').toString().toLowerCase().trim()))?.json?.decision_by) || 'Firm Administrator' }}"
+            },
+            {
+              "id": "pir10",
+              "name": "outcome_status",
+              "type": "string",
+              "value": "={{ ($('Get Case Invoices').all().find(r => (r.json.invoice_id || '').toString().toLowerCase().trim() === ($json['Select Invoice'] ? $json['Select Invoice'].split(' ')[0].trim().toLowerCase() : ($('Search Criteria').first().json.search_invoice_id || $json.invoice_id || '').toString().toLowerCase().trim()))?.json?.outcome_status) || 'Approved' }}"
+            },
+            {
+              "id": "pir11",
+              "name": "final_status",
+              "type": "string",
+              "value": "={{ ($('Get Case Invoices').all().find(r => (r.json.invoice_id || '').toString().toLowerCase().trim() === ($json['Select Invoice'] ? $json['Select Invoice'].split(' ')[0].trim().toLowerCase() : ($('Search Criteria').first().json.search_invoice_id || $json.invoice_id || '').toString().toLowerCase().trim()))?.json?.final_status) || 'Approved' }}"
+            },
+            {
+              "id": "pir12",
+              "name": "invoice_date",
+              "type": "string",
+              "value": "={{ ($('Get Case Invoices').all().find(r => (r.json.invoice_id || '').toString().toLowerCase().trim() === ($json['Select Invoice'] ? $json['Select Invoice'].split(' ')[0].trim().toLowerCase() : ($('Search Criteria').first().json.search_invoice_id || $json.invoice_id || '').toString().toLowerCase().trim()))?.json?.timestamp) || $now.toISO() }}"
+            },
+            {
+              "id": "pir13",
+              "name": "recipient_email",
+              "type": "string",
+              "value": "={{ $('Search Criteria').first().json.search_email }}"
+            },
+            {
+              "id": "pir14",
+              "name": "action",
+              "type": "string",
+              "value": "={{ ($('Search Criteria').first().json.requested_action || 'view_invoice').toString().toLowerCase().trim() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f3633f09-21a0-42c5-af2e-ec038c460da9",
+      "name": "Prepare Invoice Record",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -432,
+        960
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "Invoice Dispatched Successfully",
+        "completionMessage": "=<h3>✅ Invoice Dispatched Successfully</h3><p>The official billing statement for <strong>Invoice {{ $('Prepare Invoice Record').first().json.invoice_id }}</strong> (Case #<strong>{{ $('Prepare Invoice Record').first().json.case_id }}</strong>) has been generated and dispatched.</p><p>The certified PDF invoice copy has been sent to both:</p><ul><li><strong>Firm Administrator:</strong> {{ $('Verify Case Directory').first().json.firm_admin_email || $vars.FIRM_ADMIN_EMAIL }}</li><li><strong>Client / Case Owner:</strong> {{ $('Verify Case Directory').first().json.case_owner_email }}</li></ul><p style=\"color: #64748b; font-size: 13px;\">Please check your inbox to view and save the certified PDF attachment.</p>",
+        "options": {
+          "formTitle": "Invoice Dispatched"
+        }
+      },
+      "id": "c9bcdc40-dc02-4a71-990b-f262c620a598",
+      "name": "Download Invoice File",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        240,
+        1056
+      ],
+      "webhookId": "4b047603-1afd-4b74-ac9c-b931a483150d"
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "respondWith": "redirect",
+        "redirectUrl": "={{ 'https://drive.google.com/file/d/' + $('Dispatch Invoice Document').first().json.document_id + '/view' }}",
+        "options": {
+          "formTitle": "View Invoice Document"
+        }
+      },
+      "id": "d07d40de-b828-48f2-b975-5469b89c3edf",
+      "name": "View Invoice in Google Docs",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        240,
+        864
+      ],
+      "webhookId": "67f9576e-108b-4117-8195-bf64450ee687"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "is-view",
+                    "leftValue": "={{ ['view', 'view_case', 'view_invoice'].includes(($('Prepare Invoice Record').first().json.action || '').toString().toLowerCase().trim()) }}",
+                    "operator": {
+                      "operation": "true",
+                      "singleValue": true,
+                      "type": "boolean"
+                    },
+                    "rightValue": true
+                  }
+                ],
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                }
+              },
+              "renameOutput": true,
+              "outputKey": "View Invoice"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Download Invoice PDF"
+        }
+      },
+      "id": "43c7206e-4014-408d-bedf-329fba3f86bc",
+      "name": "Action Switch",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        16,
+        960
+      ]
+    },
+    {
+      "parameters": {
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Case ID",
+              "placeholder": "e.g. CASE-001, CASE-002, 205972",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Invoice ID (Optional)",
+              "placeholder": "e.g. INV-205972-01 (leave blank to evaluate all case invoices)"
+            },
+            {
+              "fieldLabel": "Closure Remarks",
+              "fieldType": "textarea",
+              "placeholder": "Enter judgment details or closure reason",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Notify Email",
+              "fieldType": "email",
+              "placeholder": "Enter contact email for closure alerts",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "formTitle": "Case Closure & Final Sign-Off",
+          "formDescription": "Step 4 — Provide case ID, optional specific Invoice ID, and closure remarks.",
+          "buttonLabel": "Submit for Case Closure ➔"
+        }
+      },
+      "id": "43abb224-0fd4-42f2-9fa8-13a65007e2b4",
+      "name": "Case Closure Form",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        -3280,
+        944
+      ],
+      "webhookId": "657a200c-f581-4c4f-b6b4-c3385e8b755b"
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "Case Closure Processed",
+        "completionMessage": "={{ $json.message }}",
+        "options": {
+          "formTitle": "Case Closed Successfully"
+        }
+      },
+      "id": "dfa8fe66-5ebb-40bf-af0f-28236c2c2776",
+      "name": "Case Closure Completed",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        -2832,
+        944
+      ],
+      "webhookId": "4b745755-27fa-41b6-b40d-4fd30d9d07ca"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "LuLRjCdmhWlppASB"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "record_type": "invoice",
+            "user_role": "={{ $('Invoice Event').first().json['User Type'] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "user_role",
+              "displayName": "user_role",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "allowed_roles",
+              "displayName": "allowed_roles",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "record_type",
+              "displayName": "record_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "record_id",
+              "displayName": "record_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "action",
+              "displayName": "action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "f6c44004-3f98-47dc-83bb-91b7b758348b",
+      "name": "Validate Permission",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        -4256,
+        1328
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "3ZrCkLZcjXqKdpPp"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "action": "closure",
+            "case_id": "={{ $json['Case ID'] }}",
+            "closure_remarks": "={{ $json['Closure Remarks'] }}",
+            "notify_email": "={{ $json['Notify Email'] }}",
+            "requester_role": "={{ $('Validate Permission').first().json.user_role }}",
+            "invoice_id": "={{ ($json['Invoice ID (Optional)'] || $json['Invoice ID'] || '').trim() }}",
+            "selected_bill": "={{ ($json['Invoice ID (Optional)'] || $json['Invoice ID'] || '').trim() }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "case_id",
+              "displayName": "case_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "requester_role",
+              "displayName": "requester_role",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "closure_remarks",
+              "displayName": "closure_remarks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "notify_email",
+              "displayName": "notify_email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "action",
+              "displayName": "action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "selected_bill",
+              "displayName": "selected_bill",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "29e921d2-bd81-41ef-aede-3be96deff2fa",
+      "name": "Execute Case Closure Sub-workflow",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        -3056,
+        944
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $vars.TABLE_CASE_DIRECTORY || 'PFF0bSgccDIC5E5T' }}"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "case_id",
+              "condition": "ilike",
+              "keyValue": "={{ $('Invoice Payload').first().json.case_id.trim() }}"
+            }
+          ]
+        },
+        "limit": 1
+      },
+      "id": "8de8314e-885a-4f02-8eb1-52c1668a7534",
+      "name": "Check Case Status for Invoice",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -2608,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "cond-case-closed-or-blocked",
+              "leftValue": "={{ Boolean($('Invoice Payload').first().json.case_id) && ['closed', 'closure-blocked', 'closure_blocked'].includes(($json.case_status || '').toString().toLowerCase().trim()) }}",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              },
+              "rightValue": true
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b6b181c6-8cea-4318-82ae-3f06b0d8f173",
+      "name": "Is Case Closed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -2384,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ [$('Invoice Payload').first().json.notify_email, $('Check Case Status for Invoice').first().json.case_owner_email, $('Check Case Status for Invoice').first().json.firm_admin_email].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(', ') }}",
+        "subject": "=⛔ [REJECTED] Invoice Generation Blocked: Case {{ $('Invoice Payload').first().json.case_id }} Status is {{ ($('Check Case Status for Invoice').first().json.case_status || 'closed').toUpperCase() }}",
+        "message": "=<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #1e293b; max-width: 620px; margin: 0 auto; border: 1px solid #cbd5e1; border-radius: 10px; overflow: hidden; background: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.06);\"><div style=\"background: linear-gradient(135deg, #991b1b 0%, #b91c1c 100%); color: #ffffff; padding: 26px 28px; border-bottom: 3px solid #dc2626;\"><div style=\"font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; opacity: 0.85; margin-bottom: 4px; font-weight: 600;\">Legal Practice Management &bull; Billing Compliance Guardrail</div><h2 style=\"margin: 0; font-size: 22px; font-weight: 700; color: #ffffff;\">⛔ Invoice Generation Blocked</h2><p style=\"margin: 6px 0 0 0; opacity: 0.95; font-size: 14px;\">Case Reference: <strong style=\"color: #fecaca;\">#{{ $('Invoice Payload').first().json.case_id }}</strong> &bull; Attempted Invoice: <strong>{{ $('Invoice Payload').first().json.invoice_id || 'INV-REQUEST' }}</strong></p></div><div style=\"padding: 28px 28px 24px 28px;\"><p style=\"font-size: 15px; margin-top: 0; color: #0f172a;\">Hello <strong>{{ $('Invoice Payload').first().json.requester_name }}</strong>,</p><p style=\"font-size: 14px; line-height: 1.6; color: #334155; margin-bottom: 20px;\">Your billing invoice request for <strong>₹{{ Number($('Invoice Payload').first().json.amount).toLocaleString('en-IN') }}</strong> has been evaluated against firm financial governance rules and was <strong style=\"color: #b91c1c;\">BLOCKED</strong> by the case status guardrail.</p><div style=\"background-color: #fef2f2; border: 1.5px solid #fecaca; border-left: 5px solid #dc2626; border-radius: 8px; padding: 18px 20px; margin-bottom: 22px;\"><h4 style=\"margin: 0 0 8px 0; color: #991b1b; font-size: 15px; font-weight: 700;\">🛑 Guardrail Enforcement Reason</h4><p style=\"color: #7f1d1d; font-size: 13px; line-height: 1.6; margin: 0 0 8px 0;\">Case <strong>#{{ $('Invoice Payload').first().json.case_id }}</strong> is currently flagged in <strong style=\"text-transform: uppercase;\">{{ ($('Check Case Status for Invoice').first().json.case_status || 'closed').toUpperCase() }}</strong> status in firm records.</p><p style=\"color: #7f1d1d; font-size: 13px; line-height: 1.6; margin: 0;\">Under firm compliance policies, new invoice generation is prohibited against closed or closure-blocked matters.</p></div><div style=\"background-color: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 18px 20px; margin-bottom: 22px;\"><table border=\"0\" cellpadding=\"7\" style=\"width: 100%; border-collapse: collapse; font-size: 14px;\"><tr style=\"border-bottom: 1px solid #edf2f7;\"><td style=\"width: 38%; color: #64748b; font-weight: 500;\">Case Reference ID:</td><td><code style=\"font-size: 15px; font-weight: 700; color: #991b1b; background: #fee2e2; padding: 3px 8px; border-radius: 4px;\">#{{ $('Invoice Payload').first().json.case_id }}</code></td></tr><tr style=\"border-bottom: 1px solid #edf2f7;\"><td style=\"color: #64748b; font-weight: 500;\">Case Directory Status:</td><td><span style=\"background: #fee2e2; color: #991b1b; padding: 3px 10px; border-radius: 4px; font-weight: 700; font-size: 12px; text-transform: uppercase;\">{{ ($('Check Case Status for Invoice').first().json.case_status || 'closed').toUpperCase() }}</span></td></tr><tr style=\"border-bottom: 1px solid #edf2f7;\"><td style=\"color: #64748b; font-weight: 500;\">Attempted Invoice ID:</td><td><strong style=\"color: #0f172a;\">{{ $('Invoice Payload').first().json.invoice_id || 'N/A' }}</strong></td></tr><tr><td style=\"color: #64748b; font-weight: 500;\">Attempted Amount:</td><td><strong style=\"color: #0f172a;\">₹{{ Number($('Invoice Payload').first().json.amount).toLocaleString('en-IN') }}</strong></td></tr></table></div><div style=\"background-color: #f1f5f9; padding: 14px 18px; border-radius: 6px; margin-bottom: 22px;\"><p style=\"margin: 0; font-size: 13px; color: #475569; line-height: 1.5;\"><strong>How to Resolve:</strong> If you are attempting to settle or modify an existing bill for this matter, use the <strong>View / Update Invoice</strong> action in the portal to locate and update the existing invoice ledger.</p></div><div style=\"text-align: center; margin: 26px 0 18px 0;\"><a href=\"{{ $vars.PRACTICE_PORTAL_URL }}\" target=\"_blank\" style=\"display: inline-block; background-color: #dc2626; color: #ffffff; padding: 13px 28px; text-decoration: none; border-radius: 6px; font-weight: 700; font-size: 14px; box-shadow: 0 2px 4px rgba(220,38,38,0.3);\">💳 Access Billing Portal ➔</a></div><hr style=\"border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0 16px 0;\"/><p style=\"font-size: 12px; color: #94a3b8; margin: 0; text-align: center;\">Legal Practice Management System &bull; Privileged &amp; Confidential Financial Guardrail</p></div></div>",
+        "options": {}
+      },
+      "id": "83ae3350-d6da-4b0a-a784-cac8f0bf6876",
+      "name": "Send Case Closed Blocker Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -2160,
+        432
+      ],
+      "webhookId": "4a54ca3b-e55b-46fa-bece-53ef40c7bcc7",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "sVmGKpNsTs1T3jnJ",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "Invoice Generation Blocked",
+        "completionMessage": "=<h3>⛔ Invoice Request Blocked</h3><p>New invoices cannot be generated for Case <strong>{{ $('Invoice Payload').first().json.case_id }}</strong>.</p><table border='1' cellpadding='8' cellspacing='0' style='border-collapse: collapse; margin: 12px 0;'><tr><td><strong>Case ID</strong></td><td>{{ $('Invoice Payload').first().json.case_id }}</td></tr><tr><td><strong>Case Status</strong></td><td><span style='color: #d32f2f; font-weight: bold;'>{{ ($('Check Case Status for Invoice').first().json.case_status || 'closed').toUpperCase() }}</span></td></tr><tr><td><strong>Attempted Invoice ID</strong></td><td>{{ $('Invoice Payload').first().json.invoice_id }}</td></tr><tr><td><strong>Attempted Amount</strong></td><td>₹{{ Number($('Invoice Payload').first().json.amount).toLocaleString('en-IN') }}</td></tr></table><p>Under firm governance policies, new invoice generation is prohibited for cases that are closed or in <strong>closure-blocked</strong> status.</p><p>An alert notification has been dispatched to <code>{{ $('Invoice Payload').first().json.notify_email }}</code>.</p>",
+        "options": {
+          "formTitle": "Case Closure Disallowed by Guardrail"
+        }
+      },
+      "id": "08daa6fb-9931-423a-a531-4b6393521794",
+      "name": "Case Closed Blocker Screen",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        -1936,
+        432
+      ],
+      "webhookId": "29898013-9ef3-47ee-9b1d-a32dbfb204b8"
+    },
+    {
+      "parameters": {
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Case ID",
+              "placeholder": "e.g. CASE-001, CASE-002, CASE-003, CASE-004",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Bill to Waive / Scope",
+              "placeholder": "Enter 'ALL' to waive all pending bills, or enter specific Invoice ID (e.g. INV-001)",
+              "defaultValue": "ALL"
+            },
+            {
+              "fieldLabel": "Waiver Justification / Reason",
+              "fieldType": "textarea",
+              "placeholder": "Enter administrative justification or write-off reason",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "formTitle": "Administrative Fee Waiver / Write-Off",
+          "formDescription": "Step 4 — Firm Administrator Override: Waive outstanding fees to clear closure blockers.",
+          "buttonLabel": "Execute Fee Waiver ➔"
+        }
+      },
+      "id": "350bc6e3-3eb1-45b4-9cef-64c8c52b6d17",
+      "name": "Administrative Waiver Form",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        -3280,
+        1136
+      ],
+      "webhookId": "e2b7ebc5-5ea3-47da-86b7-96f065124734"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "3ZrCkLZcjXqKdpPp"
+        },
+        "workflowInputs": {
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true,
+          "mappingMode": "defineBelow",
+          "matchingColumns": [],
+          "schema": [
+            {
+              "displayName": "case_id",
+              "id": "case_id",
+              "type": "string"
+            },
+            {
+              "displayName": "requester_role",
+              "id": "requester_role",
+              "type": "string"
+            },
+            {
+              "displayName": "closure_remarks",
+              "id": "closure_remarks",
+              "type": "string"
+            },
+            {
+              "displayName": "notify_email",
+              "id": "notify_email",
+              "type": "string"
+            },
+            {
+              "displayName": "action",
+              "id": "action",
+              "type": "string"
+            },
+            {
+              "displayName": "selected_bill",
+              "id": "selected_bill",
+              "type": "string"
+            }
+          ],
+          "value": {
+            "action": "waiver",
+            "case_id": "={{ $json['Case ID'] }}",
+            "closure_remarks": "={{ $json['Waiver Justification / Reason'] }}",
+            "notify_email": "={{ $json['Notify Email'] || '' }}",
+            "requester_role": "={{ $('Validate Permission').first().json.user_role }}",
+            "selected_bill": "={{ ($json['Bill to Waive / Scope'] || 'ALL').trim() }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "d9249157-2edf-4778-853a-5770ba92e60d",
+      "name": "Execute Case Waiver Sub-workflow",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        -3056,
+        1136
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "Administrative Waiver Processed",
+        "completionMessage": "={{ $json.message }}",
+        "options": {
+          "formTitle": "Administrative Waiver Executed"
+        }
+      },
+      "id": "39adc931-d487-4fc8-8fcb-e1267d34eeb0",
+      "name": "Case Waiver Completed",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        -2832,
+        1136
+      ],
+      "webhookId": "a9ea69d5-0b10-4a92-87e4-6d46c6927427"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "cond-is-update",
+              "leftValue": "={{ ($('Search Criteria').first().json.requested_action || '').toString().toLowerCase().trim() }}",
+              "operator": {
+                "operation": "equals",
+                "type": "string"
+              },
+              "rightValue": "update"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f794b946-b3bc-4c17-a3ee-c5010c7809f7",
+      "name": "Is Update Action?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1840,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Legal Proceeding Stage",
+              "fieldType": "dropdown",
+              "defaultValue": "={{ $('Verify Case Directory').first().json.legal_proceeding_stage === 'onboarding' ? 'paper filed' : ($('Verify Case Directory').first().json.legal_proceeding_stage || 'paper filed') }}",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "paper filed"
+                  },
+                  {
+                    "option": "hearing"
+                  },
+                  {
+                    "option": "under-trial"
+                  },
+                  {
+                    "option": "final judgment"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Advocate ID",
+              "placeholder": "e.g. ADV-101",
+              "defaultValue": "={{ $('Verify Case Directory').first().json.advocate_id || '' }}"
+            },
+            {
+              "fieldLabel": "Advocate Name",
+              "placeholder": "e.g. Adv. Vikram Seth",
+              "defaultValue": "={{ $('Verify Case Directory').first().json.advocate_name || '' }}"
+            },
+            {
+              "fieldLabel": "Advocate Email",
+              "placeholder": "e.g. advocate@lawfirm.com",
+              "defaultValue": "={{ $('Verify Case Directory').first().json.advocate_email || '' }}"
+            },
+            {
+              "fieldLabel": "Court / Bench Name",
+              "placeholder": "e.g. District & Sessions Court, Courtroom 4",
+              "defaultValue": "={{ $('Verify Case Directory').first().json.court_name || '' }}"
+            },
+            {
+              "fieldLabel": "Hearing / Court Date",
+              "fieldType": "date",
+              "defaultValue": "={{ (() => { const d = $('Verify Case Directory').first().json.hearing_date; if (!d) return ''; if (/^\\d{4}-\\d{2}-\\d{2}$/.test(d)) return d; const p = d.split('/'); if (p.length === 3) { return (p[2].length === 2 ? '20' + p[2] : p[2]) + '-' + p[1].padStart(2, '0') + '-' + p[0].padStart(2, '0'); } return d; })() }}"
+            },
+            {
+              "fieldLabel": "Hearing Time",
+              "fieldType": "dropdown",
+              "defaultValue": "={{ (() => { const t = ($('Verify Case Directory').first().json.hearing_time || '11:00 AM').toUpperCase().trim(); const opts = ['10:00 AM','10:30 AM','11:00 AM','11:30 AM','12:00 PM','12:30 PM','01:00 PM','01:30 PM','02:00 PM','02:30 PM','03:00 PM','03:30 PM','04:00 PM','04:30 PM','05:00 PM']; return opts.find(o => o.toLowerCase() === t.toLowerCase()) || '11:00 AM'; })() }}",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "10:00 AM"
+                  },
+                  {
+                    "option": "10:30 AM"
+                  },
+                  {
+                    "option": "11:00 AM"
+                  },
+                  {
+                    "option": "11:30 AM"
+                  },
+                  {
+                    "option": "12:00 PM"
+                  },
+                  {
+                    "option": "12:30 PM"
+                  },
+                  {
+                    "option": "01:00 PM"
+                  },
+                  {
+                    "option": "01:30 PM"
+                  },
+                  {
+                    "option": "02:00 PM"
+                  },
+                  {
+                    "option": "02:30 PM"
+                  },
+                  {
+                    "option": "03:00 PM"
+                  },
+                  {
+                    "option": "03:30 PM"
+                  },
+                  {
+                    "option": "04:00 PM"
+                  },
+                  {
+                    "option": "04:30 PM"
+                  },
+                  {
+                    "option": "05:00 PM"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Statutory Deadline",
+              "fieldType": "dropdown",
+              "defaultValue": "None",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "None"
+                  },
+                  {
+                    "option": "Written Statement"
+                  },
+                  {
+                    "option": "Rejoinder / Reply"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Milestone Remarks",
+              "placeholder": "e.g. Cause list issued, preliminary arguments scheduled"
+            },
+            {
+              "fieldLabel": "Send Milestone Notification Email",
+              "fieldType": "dropdown",
+              "defaultValue": "Yes",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Yes"
+                  },
+                  {
+                    "option": "No"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Invoice Amount",
+              "fieldType": "number",
+              "defaultValue": "={{ $('Fetch Invoices for Case Update').all().find(r => Boolean(r.json.amount) && (r.json.invoice_id || '').startsWith('INV-'))?.json?.amount || '' }}"
+            },
+            {
+              "fieldLabel": "Invoice Payment Status",
+              "fieldType": "dropdown",
+              "defaultValue": "={{ $('Fetch Invoices for Case Update').all().find(r => Boolean(r.json.invoice_status) && (r.json.invoice_id || '').startsWith('INV-'))?.json?.invoice_status || 'pending' }}",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "pending"
+                  },
+                  {
+                    "option": "paid"
+                  }
+                ]
+              },
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "formTitle": "={{ 'Case #' + $('Verify Case Directory').first().json.case_id + ' - Milestone & Financial Management (Firm Admin)' }}",
+          "formDescription": "={{ 'Client: ' + ($('Verify Case Directory').first().json.client_name || 'Client') + ' (' + $('Verify Case Directory').first().json.case_owner_email + ') | Manage proceeding schedule and billing details.' }}",
+          "buttonLabel": "Save Case Updates & Notify Client ➔",
+          "customCss": "input[name=\"Case ID (Read-Only)\"],\ninput[name=\"Client Name (Read-Only)\"],\ninput[name=\"Client Email (Read-Only)\"],\ninput[name=\"Pending Invoice ID (Read-Only)\"],\ninput[name*=\"Read-Only\"],\ninput[name*=\"read-only\"] {\n  pointer-events: none !important;\n  background-color: #f1f3f5 !important;\n  color: #6c757d !important;\n  cursor: not-allowed !important;\n  border: 1px solid #ced4da !important;\n  user-select: none !important;\n}\n\ninput[name=\"Milestone Remarks\"],\ntextarea[name=\"Milestone Remarks\"],\ninput[placeholder*=\"Cause list\"],\ninput[name=\"Invoice Amount\"],\ninput[type=\"number\"],\ninput[name=\"Advocate ID\"],\ninput[name=\"Advocate Name\"],\ninput[name=\"Advocate Email\"],\ninput[name=\"Court / Bench Name\"],\ninput[name=\"Hearing / Court Date\"] {\n  pointer-events: auto !important;\n  background-color: #ffffff !important;\n  color: #1e293b !important;\n  cursor: text !important;\n  user-select: auto !important;\n}"
+        }
+      },
+      "id": "3ce9ed07-76d1-4152-b725-01858e07520f",
+      "name": "Firm Admin Case Update Form",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        -656,
+        1632
+      ],
+      "webhookId": "1e8cfe3c-e4fa-4fde-82c1-4fabef3730e9"
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "Case Updated",
+        "completionMessage": "={{ $('Execute Advocate Case Assignment Sub-workflow').first().json.message + ($('Execute Statutory Deadline Sub-workflow').isExecuted ? ('<div style=\"margin-top: 15px; padding: 12px; background: #fff7ed; border-left: 4px solid #ea580c; border-radius: 4px;\"><p style=\"margin: 0 0 4px 0; font-weight: 600; color: #9a3412;\">⚖️ Statutory Deadline Tracked: ' + $('Execute Statutory Deadline Sub-workflow').first().json.deadline_name + '</p><p style=\"margin: 0; font-size: 13px; color: #c2410c;\">Calculated Due Date: <strong>' + $('Execute Statutory Deadline Sub-workflow').first().json.due_date + '</strong> &bull; Assigned Advocate: ' + (($('Advocate Case Update Form').isExecuted ? $('Advocate Case Update Form').first().json['Advocate Email'] : ($('Firm Admin Case Update Form').isExecuted ? $('Firm Admin Case Update Form').first().json['Advocate Email'] : ($('Assign Advocate Form').isExecuted ? $('Assign Advocate Form').first().json['Advocate Email'] : ''))) || $('Verify Case Directory').first().json.advocate_email) + '</p></div>') : '') }}",
+        "options": {
+          "formTitle": "Case Details Updated Successfully"
+        }
+      },
+      "id": "b4f0e9f6-33a6-4b51-9763-2bc0df02eb09",
+      "name": "Update Case Complete",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        240,
+        1344
+      ],
+      "webhookId": "7b381dec-872a-4c6a-a057-a5b9ad92d496"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $vars.TABLE_WORKFLOW_HISTORY || 'zLUIArHa9Po3oyoW' }}"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "case_id",
+              "condition": "ilike",
+              "keyValue": "={{ $('Search Criteria').item.json.search_case_id }}"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "id": "19940a5b-2ea0-40cd-b7ab-c15429626e56",
+      "name": "Fetch Invoices for Case Update",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -1616,
+        928
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "cond-is-initial-review",
+              "leftValue": "={{ Boolean(($('Verify Case Directory').first().json.case_status || '').toLowerCase().trim() === 'pending_onboarding' || !$('Verify Case Directory').first().json.advocate_id) }}",
+              "operator": {
+                "operation": "true",
+                "type": "boolean"
+              },
+              "rightValue": true
+            }
+          ],
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          }
+        },
+        "options": {}
+      },
+      "id": "c178fa02-bdfa-448b-9f9a-2146416b77f6",
+      "name": "Is Initial Advocate Assignment?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1328,
+        1344
+      ]
+    },
+    {
+      "parameters": {
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Case ID (Read-Only)",
+              "defaultValue": "={{ $('Verify Case Directory').first().json.case_id }}"
+            },
+            {
+              "fieldLabel": "Client Name (Read-Only)",
+              "defaultValue": "={{ $('Verify Case Directory').first().json.client_name }}"
+            },
+            {
+              "fieldLabel": "Client Email (Read-Only)",
+              "defaultValue": "={{ $('Verify Case Directory').first().json.case_owner_email }}"
+            },
+            {
+              "fieldType": "html",
+              "html": "{{ $('Verify Case Directory').first().json.conflict_status === 'Potential Conflict Detected' ? '<div class=\"conflict-alert-box\"><div class=\"conflict-title\">🚨 Potential Conflict Detected</div></div>' : '<div class=\"conflict-clear-box\"><div class=\"conflict-clear-title\">✅ Conflict Check: Clear</div></div>' }}"
+            },
+            {
+              "fieldType": "html",
+              "html": "{{ (() => {\n  const dir = $('Verify Case Directory').first().json;\n  if (!dir.document_url) {\n    return '<table width=\"100%\" cellpadding=\"16\" cellspacing=\"0\" border=\"1\" style=\"border: 1.5px dashed #cbd5e1; border-radius: 8px; background-color: #f8fafc; margin: 16px 0;\"><tr><td align=\"center\" bgcolor=\"#f8fafc\" style=\"color: #64748b; font-size: 13px;\">No document uploaded for this case matter.</td></tr></table><br>';\n  }\n\n  const docTitle = dir.document_title || 'Case Document';\n  let docUrl = dir.document_url || '';\n  if (docUrl.includes('docs.google.com/document/d/')) {\n    docUrl = docUrl.replace('docs.google.com/document/d/', 'drive.google.com/file/d/').replace('/edit', '/view');\n  }\n\n  let jotterBlock = '';\n  if (dir.jotter_url) {\n    let jUrl = dir.jotter_url;\n    if (jUrl.includes('docs.google.com/document/d/')) {\n      jUrl = jUrl.replace('docs.google.com/document/d/', 'drive.google.com/file/d/').replace('/edit', '/view');\n    }\n    jotterBlock = '<br><table width=\"100%\" cellpadding=\"16\" cellspacing=\"0\" border=\"1\" style=\"border-collapse: collapse; border: 1.5px solid #e2e8f0; border-radius: 8px; background-color: #f8fafc; margin: 12px 0;\">' +\n      '<tr><td bgcolor=\"#f8fafc\" style=\"padding: 16px;\">' +\n        '<div style=\"font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; margin-bottom: 10px;\"><b>Jotter</b></div>' +\n        '<table width=\"100%\" cellpadding=\"12\" cellspacing=\"0\" border=\"0\" bgcolor=\"#4f46e5\" style=\"border-radius: 6px; background-color: #4f46e5; width: 100%;\">' +\n          '<tr><td align=\"center\" bgcolor=\"#4f46e5\" style=\"text-align: center; background-color: #4f46e5; border-radius: 6px; padding: 12px;\">' +\n            '<a href=\"' + jUrl + '\" target=\"_blank\" style=\"color: #ffffff; text-decoration: none; display: block; width: 100%; font-weight: 700; font-size: 14px; font-family: sans-serif;\">' +\n              '<font color=\"#ffffff\" size=\"3\"><b>View Jotter Note</b></font>' +\n            '</a>' +\n          '</td></tr>' +\n        '</table>' +\n      '</td></tr>' +\n    '</table>';\n  }\n\n  const vaultBlock = '<table width=\"100%\" cellpadding=\"16\" cellspacing=\"0\" border=\"1\" style=\"border-collapse: collapse; border: 1.5px solid #e2e8f0; border-radius: 8px; background-color: #f8fafc; margin: 12px 0;\">' +\n    '<tr><td bgcolor=\"#f8fafc\" style=\"padding: 16px;\">' +\n      '<div style=\"font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; margin-bottom: 4px;\"><b>Digital Document Vault</b></div>' +\n      '<div style=\"font-size: 15px; font-weight: 600; color: #0f172a; margin-bottom: 12px;\"><b>' + docTitle + '</b></div>' +\n      '<table width=\"100%\" cellpadding=\"12\" cellspacing=\"0\" border=\"0\" bgcolor=\"#2563eb\" style=\"border-radius: 6px; background-color: #2563eb; width: 100%;\">' +\n        '<tr><td align=\"center\" bgcolor=\"#2563eb\" style=\"text-align: center; background-color: #2563eb; border-radius: 6px; padding: 12px;\">' +\n          '<a href=\"' + docUrl + '\" target=\"_blank\" style=\"color: #ffffff; text-decoration: none; display: block; width: 100%; font-weight: 700; font-size: 14px; font-family: sans-serif;\">' +\n            '<font color=\"#ffffff\" size=\"3\"><b>View Original Document</b></font>' +\n          '</a>' +\n        '</td></tr>' +\n      '</table>' +\n    '</td></tr>' +\n  '</table>';\n\n  return '<div style=\"margin: 16px 0;\">' + vaultBlock + jotterBlock + '<br><br></div>';\n})() }}"
+            },
+            {
+              "fieldLabel": "Review Decision",
+              "fieldType": "dropdown",
+              "defaultValue": "Accept Case & Assign Advocate",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Accept Case & Assign Advocate"
+                  },
+                  {
+                    "option": "Reject / Decline Case"
+                  }
+                ]
+              },
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "formTitle": "Case Intake Review & Conflict Clearance",
+          "formDescription": "Step 4 — Review matter documents, client profile, and conflict of interest status.",
+          "buttonLabel": "Submit Review Decision ➔",
+          "customCss": "#field-0, #field-1, #field-2 {\n  pointer-events: none !important;\n  background-color: #f1f3f5 !important;\n  color: #495057 !important;\n  cursor: not-allowed !important;\n  border: 1px solid #ced4da !important;\n  user-select: none !important;\n}\n\n.form-group.html {\n  margin-top: 10px !important;\n  margin-bottom: 18px !important;\n}\n\n.conflict-alert-box {\n  padding: 12px 16px !important;\n  background-color: #fef2f2 !important;\n  border: 1px solid #f87171 !important;\n  border-left: 5px solid #dc2626 !important;\n  border-radius: 6px !important;\n  margin-top: 6px !important;\n  margin-bottom: 12px !important;\n}\n.conflict-title {\n  color: #991b1b !important;\n  font-weight: 700 !important;\n  font-size: 14px !important;\n  margin: 0 !important;\n}\n.conflict-clear-box {\n  padding: 10px 14px !important;\n  background-color: #f0fdf4 !important;\n  border: 1px solid #86efac !important;\n  border-left: 5px solid #16a34a !important;\n  border-radius: 6px !important;\n  margin-top: 6px !important;\n  margin-bottom: 12px !important;\n}\n.conflict-clear-title {\n  color: #15803d !important;\n  font-weight: 700 !important;\n  font-size: 14px !important;\n  margin: 0 !important;\n}\n\n.vault-container {\n  display: flex !important;\n  flex-direction: column !important;\n  gap: 8px !important;\n  text-align: left !important;\n}\n\n.vault-label {\n  display: block !important;\n  font-size: 14px !important;\n  font-weight: 600 !important;\n  color: #555555 !important;\n  padding-bottom: 4px !important;\n  text-align: left !important;\n}\n\n.vault-card {\n  display: flex !important;\n  flex-direction: column !important;\n  gap: 12px !important;\n  padding: 16px !important;\n  background: #f8fafc !important;\n  border: 1px solid #cbd5e1 !important;\n  border-radius: 8px !important;\n  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;\n  box-sizing: border-box !important;\n}\n\n.vault-info {\n  display: flex !important;\n  flex-direction: column !important;\n  gap: 4px !important;\n  text-align: left !important;\n}\n\n.vault-doc-title {\n  font-size: 14px !important;\n  font-weight: 600 !important;\n  color: #0f172a !important;\n  line-height: 1.4 !important;\n}\n\n.vault-doc-category {\n  font-size: 12px !important;\n  color: #475569 !important;\n  font-weight: 500 !important;\n}\n\n.jotter-btn {\n  display: block !important;\n  text-align: center !important;\n  background-color: #4f46e5 !important;\n  color: #ffffff !important;\n  padding: 11px 18px !important;\n  border-radius: 6px !important;\n  font-size: 14px !important;\n  font-weight: 600 !important;\n  text-decoration: none !important;\n  box-shadow: 0 1px 3px rgba(79, 70, 229, 0.3) !important;\n  cursor: pointer !important;\n  box-sizing: border-box !important;\n  transition: all 0.15s ease-in-out !important;\n  width: 100% !important;\n}\n\n.jotter-btn:hover {\n  background-color: #4338ca !important;\n  color: #ffffff !important;\n  text-decoration: none !important;\n  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.4) !important;\n}\n\n.vault-btn {\n  display: block !important;\n  text-align: center !important;\n  background-color: #1a73e8 !important;\n  color: #ffffff !important;\n  padding: 11px 18px !important;\n  border-radius: 6px !important;\n  font-size: 14px !important;\n  font-weight: 600 !important;\n  text-decoration: none !important;\n  box-shadow: 0 1px 3px rgba(26, 115, 232, 0.3) !important;\n  cursor: pointer !important;\n  box-sizing: border-box !important;\n  transition: all 0.15s ease-in-out !important;\n  width: 100% !important;\n}\n\n.vault-btn:hover {\n  background-color: #1557b0 !important;\n  color: #ffffff !important;\n  text-decoration: none !important;\n  box-shadow: 0 2px 6px rgba(26, 115, 232, 0.4) !important;\n}\n\n.vault-empty {\n  padding: 14px !important;\n  background: #f8fafc !important;\n  border: 1px dashed #cbd5e1 !important;\n  border-radius: 6px !important;\n  color: #94a3b8 !important;\n  font-size: 13px !important;\n  text-align: center !important;\n}"
+        }
+      },
+      "id": "4451602d-2a94-4fbb-bbcd-f11c055098ec",
+      "name": "Initial Advocate Assignment Form",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        -1104,
+        1152
+      ],
+      "webhookId": "1d6a2f10-24d5-429e-a7ed-85fb8f89ad5d"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "check-is-existing",
+              "leftValue": "={{ ($json['Client Status'] || '').toString().toLowerCase().includes('existing') }}",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              },
+              "rightValue": ""
+            }
+          ],
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          }
+        },
+        "options": {}
+      },
+      "id": "8e1288c8-c7fb-40f1-b1c1-80062ddeea10",
+      "name": "Route Client Status",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -3568,
+        1472
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "check-client-role",
+              "leftValue": "={{ ($('Invoice Event').first().json['User Type'] || '').toString().toLowerCase().trim() }}",
+              "operator": {
+                "operation": "equals",
+                "type": "string"
+              },
+              "rightValue": "client"
+            }
+          ],
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          }
+        },
+        "options": {}
+      },
+      "id": "c18d77fd-ccd6-49a0-a779-1fb272ed1d1c",
+      "name": "Is Client Role?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -3808,
+        1232
+      ]
+    },
+    {
+      "parameters": {
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Client Status",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Existing Client (View / Download Invoices)"
+                  },
+                  {
+                    "option": "New Client (Sign Up & Onboard)"
+                  }
+                ]
+              },
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "formTitle": "Client Case Tracking Dashboard",
+          "formDescription": "Current proceeding status, assigned legal counsel, and scheduled court dates.",
+          "buttonLabel": "Exit Dashboard"
+        }
+      },
+      "id": "89fd7b4d-4d7d-45a9-9979-c96a08a4fe99",
+      "name": "Client Status Form",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        -3792,
+        1472
+      ],
+      "webhookId": "670793a2-6381-4dc4-88dd-3af3a74235d5"
+    },
+    {
+      "parameters": {
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Full Name",
+              "placeholder": "e.g. John Doe",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Email Address",
+              "fieldType": "email",
+              "placeholder": "e.g. client@example.com",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Location",
+              "placeholder": "e.g. Ahmedabad, Gujarat",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Address",
+              "placeholder": "e.g. 402 Binori B Square, SG Highway",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Pincode",
+              "placeholder": "e.g. 380058",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Attach Case Document / Notice",
+              "fieldType": "file"
+            }
+          ]
+        },
+        "options": {
+          "formTitle": "New Matter Client Intake & Onboarding",
+          "formDescription": "Register your legal matter, contact details, and upload incident documents.",
+          "buttonLabel": "Submit New Case Intake ➔"
+        }
+      },
+      "id": "563b5bb6-12d1-42f1-b9a2-4ca7d8039577",
+      "name": "Client Onboarding Form",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        -3280,
+        1904
+      ],
+      "webhookId": "3f4dca65-4ccf-425b-bffc-5319307d3836"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "DXtSEaMaS4rhVExH"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "client_email": "={{ $json['Email Address'] }}",
+            "client_name": "={{ $json['Full Name'] }}",
+            "address": "={{ $json['Address'] }}",
+            "location": "={{ $json['Location'] }}",
+            "pincode": "={{ $json['Pincode'] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "displayName": "client_name",
+              "id": "client_name",
+              "type": "string"
+            },
+            {
+              "displayName": "client_email",
+              "id": "client_email",
+              "type": "string"
+            },
+            {
+              "displayName": "location",
+              "id": "location",
+              "type": "string"
+            },
+            {
+              "displayName": "address",
+              "id": "address",
+              "type": "string"
+            },
+            {
+              "displayName": "pincode",
+              "id": "pincode",
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "056f6f29-f95b-4cdd-8009-7540d3355f66",
+      "name": "Execute Sub-workflow: Client Onboarding",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        -3056,
+        1904
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "Registration Successful & Document Vault Created",
+        "completionMessage": "=<h3>🎉 Welcome to Our Firm!</h3>\n<p>Dear <strong>{{ $json.client_name }}</strong>,</p>\n<p>Your legal matter profile has been successfully registered in our case directory.</p>\n",
+        "options": {
+          "formTitle": "Client Matter Intake Submitted"
+        }
+      },
+      "id": "21b2fca9-75ca-4e9a-83c2-18ff6b503b84",
+      "name": "Registration Success Screen",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        -2384,
+        1904
+      ],
+      "webhookId": "c788cac7-8932-4c8a-9dde-785fd386248f"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "check-reg-success",
+              "leftValue": "={{ Boolean($json.case_id) }}",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              },
+              "rightValue": ""
+            }
+          ],
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          }
+        },
+        "options": {}
+      },
+      "id": "0451b133-a2e4-4a78-ade4-d72c5f620d77",
+      "name": "Is Registration Successful?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -2832,
+        1904
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "Existing Profile Detected",
+        "completionMessage": "=<h3>⚠️ Notice: Existing Record Found</h3><p>Dear <strong>{{ $json.client_name }}</strong>,</p><p>{{ $json.duplicate_type === 'email_match' ? ('An active client account already exists under the email: <strong>' + $json.client_email + '</strong>.') : ('An active matter profile (Case #' + $json.matched_case_id + ') already exists for <strong>' + $json.client_name + '</strong> with the same address/location details.') }}</p><p>To prevent duplicate records, a new case has not been created. Please log in to the Client Portal using your existing Case ID or contact the firm administrator.</p>",
+        "options": {
+          "formTitle": "Existing Matter Record Found"
+        }
+      },
+      "id": "ef523bfa-f460-485f-8d4a-837534228163",
+      "name": "Duplicate Intake Notice Screen",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        -2608,
+        2000
+      ],
+      "webhookId": "b90283a5-ceab-47f9-94f1-350da14bab02"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json['Review Decision'] }}",
+              "operator": {
+                "operation": "contains",
+                "type": "string"
+              },
+              "rightValue": "Accept"
+            }
+          ],
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "34fa29fa-6d46-41a7-97ce-76f8b29da413",
+      "name": "Is Case Accepted?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -880,
+        1152
+      ]
+    },
+    {
+      "parameters": {
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Legal Proceeding Stage",
+              "fieldType": "dropdown",
+              "defaultValue": "paper filed",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "paper filed"
+                  },
+                  {
+                    "option": "hearing"
+                  },
+                  {
+                    "option": "under-trial"
+                  },
+                  {
+                    "option": "final judgment"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Advocate ID",
+              "placeholder": "e.g. ADV-101",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Advocate Name",
+              "placeholder": "e.g. Adv. Simran Arora",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Advocate Email",
+              "fieldType": "email",
+              "placeholder": "e.g. advocate@lawfirm.com",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Hearing / Court Date",
+              "fieldType": "date"
+            },
+            {
+              "fieldLabel": "Hearing Time",
+              "placeholder": "e.g. 10:30 AM"
+            },
+            {
+              "fieldLabel": "Court / Bench Name",
+              "placeholder": "e.g. Gujarat High Court, Courtroom 4"
+            },
+            {
+              "fieldLabel": "Statutory Deadline",
+              "fieldType": "dropdown",
+              "defaultValue": "None",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "None"
+                  },
+                  {
+                    "option": "Written Statement"
+                  },
+                  {
+                    "option": "Rejoinder / Reply"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Milestone Remarks",
+              "placeholder": "e.g. Initial court petition vetted and paper filed"
+            },
+            {
+              "fieldLabel": "Send Milestone Notification Email",
+              "fieldType": "dropdown",
+              "defaultValue": "Yes",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Yes"
+                  },
+                  {
+                    "option": "No"
+                  }
+                ]
+              },
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "formTitle": "Advocate Assignment & Case Scheduling",
+          "formDescription": "Step 5 — Matter accepted. Assign a lead advocate and record initial court hearing schedule.",
+          "buttonLabel": "Assign Advocate & Schedule Hearing ➔"
+        }
+      },
+      "id": "e4d5ee00-bf18-4078-9873-0a36db1ff480",
+      "name": "Assign Advocate Form",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        -656,
+        1056
+      ],
+      "webhookId": "c3e47e0f-d3a2-4c74-8fcb-6a4df7ebdeaf"
+    },
+    {
+      "parameters": {
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Decline Reason / Notes",
+              "fieldType": "textarea",
+              "placeholder": "e.g. Conflict of interest detected with existing client in Case #...",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "formTitle": "Decline Matter Representation",
+          "formDescription": "Step 5 — Representation declined due to conflict of interest. Enter notes for compliance audit logging.",
+          "buttonLabel": "Confirm Decline Representation ➔"
+        }
+      },
+      "id": "05330eda-099a-4f7c-b523-533591a55e43",
+      "name": "Decline Case Form",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        -656,
+        1248
+      ],
+      "webhookId": "ce06229b-8e96-4825-8484-737544a6e04c"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "8eIHj8Skzo1jLLVW"
+        },
+        "workflowInputs": {
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false,
+          "mappingMode": "defineBelow",
+          "matchingColumns": [],
+          "schema": [
+            {
+              "displayName": "document_type",
+              "id": "document_type",
+              "type": "string"
+            },
+            {
+              "displayName": "case_id",
+              "id": "case_id",
+              "type": "string"
+            },
+            {
+              "displayName": "client_name",
+              "id": "client_name",
+              "type": "string"
+            },
+            {
+              "displayName": "client_email",
+              "id": "client_email",
+              "type": "string"
+            },
+            {
+              "displayName": "invoice_id",
+              "id": "invoice_id",
+              "type": "string"
+            },
+            {
+              "displayName": "invoice_amount",
+              "id": "invoice_amount",
+              "type": "number"
+            },
+            {
+              "displayName": "invoice_date",
+              "id": "invoice_date",
+              "type": "string"
+            },
+            {
+              "displayName": "decision_by",
+              "id": "decision_by",
+              "type": "string"
+            },
+            {
+              "displayName": "outcome_status",
+              "id": "outcome_status",
+              "type": "string"
+            },
+            {
+              "displayName": "final_status",
+              "id": "final_status",
+              "type": "string"
+            },
+            {
+              "displayName": "requester_name",
+              "id": "requester_name",
+              "type": "string"
+            },
+            {
+              "displayName": "requester_role",
+              "id": "requester_role",
+              "type": "string"
+            },
+            {
+              "displayName": "send_email",
+              "id": "send_email",
+              "type": "boolean"
+            }
+          ],
+          "value": {
+            "case_id": "={{ $('Prepare Invoice Record').first().json.case_id }}",
+            "client_email": "={{ [$('Verify Case Directory').first().json.case_owner_email, $('Prepare Invoice Record').first().json.recipient_email, $('Verify Case Directory').first().json.firm_admin_email || $vars.FIRM_ADMIN_EMAIL].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(', ') }}",
+            "client_name": "={{ $('Verify Case Directory').first().json.client_name || $('Prepare Invoice Record').first().json.requester_name || 'Client' }}",
+            "decision_by": "={{ $('Prepare Invoice Record').first().json.decision_by }}",
+            "document_type": "invoice",
+            "final_status": "={{ $('Prepare Invoice Record').first().json.final_status }}",
+            "invoice_amount": "={{ Number($('Prepare Invoice Record').first().json.amount || 0) }}",
+            "invoice_date": "={{ $('Prepare Invoice Record').first().json.invoice_date }}",
+            "invoice_id": "={{ $('Prepare Invoice Record').first().json.invoice_id }}",
+            "outcome_status": "={{ $('Prepare Invoice Record').first().json.outcome_status }}",
+            "requester_name": "={{ $('Prepare Invoice Record').first().json.requester_name }}",
+            "requester_role": "={{ $('Prepare Invoice Record').first().json.requester_role }}",
+            "send_email": "={{ !['view', 'view_case', 'view_invoice'].includes(($('Prepare Invoice Record').first().json.action || '').toString().toLowerCase().trim()) }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "30fd6f85-1609-4d73-bf95-151345a75cc6",
+      "name": "Dispatch Invoice Document",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        -208,
+        960
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "u7lLelZaDSCZIOqU"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "amount": "={{ $('Generate Sequential Invoice ID').first().json.amount.toString() }}",
+            "case_id": "={{ $('Generate Sequential Invoice ID').first().json.case_id }}",
+            "created_at": "={{ $('Generate Sequential Invoice ID').first().json.created_at }}",
+            "invoice_id": "={{ $('Generate Sequential Invoice ID').first().json.invoice_id }}",
+            "notify_email": "={{ $('Generate Sequential Invoice ID').first().json.notify_email }}",
+            "parent_execution_id": "={{ $execution.id }}",
+            "record_type": "invoice",
+            "requester_name": "={{ $('Generate Sequential Invoice ID').first().json.requester_name }}",
+            "requester_role": "={{ $('Generate Sequential Invoice ID').first().json.requester_role }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "invoice_id",
+              "id": "invoice_id",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "amount",
+              "id": "amount",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "case_id",
+              "id": "case_id",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "requester_name",
+              "id": "requester_name",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "requester_role",
+              "id": "requester_role",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "notify_email",
+              "id": "notify_email",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "created_at",
+              "id": "created_at",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "parent_execution_id",
+              "id": "parent_execution_id",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "record_type",
+              "id": "record_type",
+              "required": false,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "811f683d-dff8-4302-a911-f7f0904ac408",
+      "name": "Execute Invoice Multi-Tier Approval Engine",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        -1488,
+        624
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "pc0Ls0KCMyOimTEL"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "action": "={{ $('Assign Advocate Form').isExecuted ? 'initial_assignment' : ($('Decline Case Form').isExecuted ? 'decline' : 'update') }}",
+            "advocate_email": "={{ ($json['Advocate Email'] || '').trim() }}",
+            "advocate_id": "={{ ($json['Advocate ID'] || '').trim() }}",
+            "advocate_name": "={{ ($json['Advocate Name'] || '').trim() }}",
+            "case_id": "={{ $('Verify Case Directory').first().json.case_id }}",
+            "court_name": "={{ ($json['Court / Bench Name'] || '').trim() }}",
+            "decline_reason": "={{ ($json['Decline Reason / Notes'] || '').trim() }}",
+            "hearing_date": "={{ ($json['Hearing / Court Date'] || '').trim() }}",
+            "hearing_time": "={{ ($json['Hearing Time'] || '').trim() }}",
+            "invoice_amount": "={{ $json['Invoice Amount'] !== undefined && $json['Invoice Amount'] !== '' ? Number($json['Invoice Amount']) : undefined }}",
+            "invoice_payment_status": "={{ ($json['Invoice Payment Status'] || 'pending').trim().toLowerCase() }}",
+            "legal_proceeding_stage": "={{ $json['Legal Proceeding Stage'] || 'paper filed' }}",
+            "milestone_remarks": "={{ ($json['Milestone Remarks'] || '').trim() }}",
+            "pending_invoice_id": "={{ ($json['Pending Invoice ID (Read-Only)'] || $('Fetch Invoices for Case Update').all().find(r => Boolean(r.json.invoice_id) && (r.json.invoice_id || '').startsWith('INV-'))?.json?.invoice_id || ('INV-' + $('Verify Case Directory').first().json.case_id)).trim() }}",
+            "requester_role": "={{ $('Invoice Event').first().json['User Type'] || 'Firm Administrator' }}",
+            "send_milestone_email": "={{ ($json['Send Milestone Notification Email'] || 'Yes').trim() }}",
+            "urgency_level": "={{ $('Verify Case Directory').first().json.urgency_level || 'Medium' }}",
+            "has_invoice_changes": "={{ (() => { if ($('Advocate Case Update Form').isExecuted) return false; const invs = $('Fetch Invoices for Case Update').all() || []; const selId = ($('Fetch Invoices for Case Update').all().find(r => Boolean(r.json.invoice_id) && (r.json.invoice_id || '').startsWith('INV-'))?.json?.invoice_id || ('INV-' + $('Verify Case Directory').first().json.case_id)).trim().toLowerCase(); if (!selId || ['no pending invoice', '', 'none'].includes(selId)) return false; const found = invs.find(r => (r.json.invoice_id || '').trim().toLowerCase() === selId); if (!found) return false; const exAmt = (found.json.amount !== undefined && found.json.amount !== null && found.json.amount !== '') ? Number(found.json.amount) : null; const exStatus = (found.json.invoice_status || 'pending').trim().toLowerCase(); const newAmt = ($json['Invoice Amount'] !== undefined && $json['Invoice Amount'] !== null && $json['Invoice Amount'] !== '') ? Number($json['Invoice Amount']) : null; const newStatus = ($json['Invoice Payment Status'] || 'pending').trim().toLowerCase(); return (newAmt !== null && newAmt !== exAmt) || (newStatus !== exStatus); })() }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "4de93ade-480b-47e8-aafc-4289cd64190b",
+      "name": "Execute Advocate Case Assignment Sub-workflow",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        -432,
+        1344
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "id": "cond-is-view",
+              "leftValue": "={{ ['view', 'view_case'].includes(($('Search Criteria').first().json.requested_action || '').toString().toLowerCase().trim()) }}",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              },
+              "rightValue": true
+            }
+          ],
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f2456715-edbf-4202-8361-a2dda753f960",
+      "name": "Is View Action?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1616,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Case ID",
+              "defaultValue": "={{ $('Verify Case Directory').first().json.case_id }}"
+            },
+            {
+              "fieldLabel": "Client Name",
+              "defaultValue": "={{ $('Verify Case Directory').first().json.client_name || 'Client' }}"
+            },
+            {
+              "fieldLabel": "Adverse Party",
+              "defaultValue": "={{ $('Verify Case Directory').first().json.adverse_party || 'None / Not Applicable' }}"
+            },
+            {
+              "fieldLabel": "Current Legal Stage",
+              "defaultValue": "={{ $('Verify Case Directory').first().json.legal_proceeding_stage || 'paper filed' }}"
+            },
+            {
+              "fieldLabel": "Assigned Advocate",
+              "defaultValue": "={{ $('Verify Case Directory').first().json.advocate_name ? ($('Verify Case Directory').first().json.advocate_name + ' (' + ($('Verify Case Directory').first().json.advocate_email || '') + ')') : 'Pending Advocate Assignment' }}"
+            },
+            {
+              "fieldLabel": "Court / Bench Name",
+              "defaultValue": "={{ $('Verify Case Directory').first().json.court_name || 'Designated Bench' }}"
+            },
+            {
+              "fieldLabel": "Court Date",
+              "defaultValue": "={{ $('Verify Case Directory').first().json.hearing_date || 'No court listing yet' }}"
+            },
+            {
+              "fieldLabel": "Court Time",
+              "defaultValue": "={{ $('Verify Case Directory').first().json.hearing_time || 'No court listing yet' }}"
+            },
+            {
+              "fieldLabel": "Statutory Deadline",
+              "defaultValue": "={{ (() => { const items = $('Fetch Statutory Deadlines for View').all().filter(x => Boolean(x.json.deadline_name)); if (!items || items.length === 0) return 'None'; const latest = items.sort((a, b) => Number(b.json.id || 0) - Number(a.json.id || 0))[0]?.json; return latest?.deadline_name || 'None'; })() }}"
+            },
+            {
+              "fieldLabel": "Statutory Due Date",
+              "defaultValue": "={{ (() => { const items = $('Fetch Statutory Deadlines for View').all().filter(x => Boolean(x.json.deadline_name)); if (!items || items.length === 0) return 'Not Applicable'; const latest = items.sort((a, b) => Number(b.json.id || 0) - Number(a.json.id || 0))[0]?.json; return latest?.due_date || 'Not Applicable'; })() }}"
+            },
+            {
+              "fieldType": "html",
+              "html": "{{ (() => {\n  const dir = $('Verify Case Directory').first().json;\n  if (!dir.document_url) {\n    return '<table width=\"100%\" cellpadding=\"16\" cellspacing=\"0\" border=\"1\" style=\"border: 1.5px dashed #cbd5e1; border-radius: 8px; background-color: #f8fafc; margin: 16px 0;\"><tr><td align=\"center\" bgcolor=\"#f8fafc\" style=\"color: #64748b; font-size: 13px;\">No document uploaded for this case matter.</td></tr></table><br>';\n  }\n\n  const docTitle = dir.document_title || 'Case Document';\n  let docUrl = dir.document_url || '';\n  if (dir.case_id === '686058' && docUrl.includes('docs.google.com')) {\n    docUrl = 'https://drive.google.com/file/d/1Kc3CyJMjxSeYHmTjJpmMNi3MAGN09vnN/view?usp=drivesdk';\n  } else if (docUrl.includes('docs.google.com/document/d/')) {\n    docUrl = docUrl.replace('docs.google.com/document/d/', 'drive.google.com/file/d/').replace('/edit', '/view');\n  }\n\n  let jotterBlock = '';\n  if (dir.jotter_url) {\n    let jUrl = dir.jotter_url;\n    if (jUrl.includes('docs.google.com/document/d/')) {\n      jUrl = jUrl.replace('docs.google.com/document/d/', 'drive.google.com/file/d/').replace('/edit', '/view');\n    }\n    jotterBlock = '<br><table width=\"100%\" cellpadding=\"16\" cellspacing=\"0\" border=\"1\" style=\"border-collapse: collapse; border: 1.5px solid #e2e8f0; border-radius: 8px; background-color: #f8fafc; margin: 12px 0;\">' +\n      '<tr><td bgcolor=\"#f8fafc\" style=\"padding: 16px;\">' +\n        '<div style=\"font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; margin-bottom: 10px;\"><b>Jotter</b></div>' +\n        '<table width=\"100%\" cellpadding=\"12\" cellspacing=\"0\" border=\"0\" bgcolor=\"#4f46e5\" style=\"border-radius: 6px; background-color: #4f46e5; width: 100%;\">' +\n          '<tr><td align=\"center\" bgcolor=\"#4f46e5\" style=\"text-align: center; background-color: #4f46e5; border-radius: 6px; padding: 12px;\">' +\n            '<a href=\"' + jUrl + '\" target=\"_blank\" style=\"color: #ffffff; text-decoration: none; display: block; width: 100%; font-weight: 700; font-size: 14px; font-family: sans-serif;\">' +\n              '<font color=\"#ffffff\" size=\"3\"><b>View Jotter Note</b></font>' +\n            '</a>' +\n          '</td></tr>' +\n        '</table>' +\n      '</td></tr>' +\n    '</table>';\n  }\n\n  const vaultBlock = '<table width=\"100%\" cellpadding=\"16\" cellspacing=\"0\" border=\"1\" style=\"border-collapse: collapse; border: 1.5px solid #e2e8f0; border-radius: 8px; background-color: #f8fafc; margin: 12px 0;\">' +\n    '<tr><td bgcolor=\"#f8fafc\" style=\"padding: 16px;\">' +\n      '<div style=\"font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; margin-bottom: 4px;\"><b>Digital Document Vault</b></div>' +\n      '<div style=\"font-size: 15px; font-weight: 600; color: #0f172a; margin-bottom: 12px;\"><b>' + docTitle + '</b></div>' +\n      '<table width=\"100%\" cellpadding=\"12\" cellspacing=\"0\" border=\"0\" bgcolor=\"#2563eb\" style=\"border-radius: 6px; background-color: #2563eb; width: 100%;\">' +\n        '<tr><td align=\"center\" bgcolor=\"#2563eb\" style=\"text-align: center; background-color: #2563eb; border-radius: 6px; padding: 12px;\">' +\n          '<a href=\"' + docUrl + '\" target=\"_blank\" style=\"color: #ffffff; text-decoration: none; display: block; width: 100%; font-weight: 700; font-size: 14px; font-family: sans-serif;\">' +\n            '<font color=\"#ffffff\" size=\"3\"><b>View Original Document</b></font>' +\n          '</a>' +\n        '</td></tr>' +\n      '</table>' +\n    '</td></tr>' +\n  '</table>';\n\n  return '<div style=\"margin: 16px 0;\">' + vaultBlock + jotterBlock + '<br><br></div>';\n})() }}"
+            },
+            {
+              "fieldLabel": "Urgency Level",
+              "fieldType": "dropdown",
+              "defaultValue": "={{ $('Verify Case Directory').first().json.urgency_level || 'Medium' }}",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Emergency"
+                  },
+                  {
+                    "option": "High"
+                  },
+                  {
+                    "option": "Medium"
+                  },
+                  {
+                    "option": "Low"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Conflict Review Decision",
+              "fieldType": "dropdown",
+              "defaultValue": "Approve & Clear Conflict (Accept Representation)",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Approve & Clear Conflict (Accept Representation)"
+                  },
+                  {
+                    "option": "Decline & Reject Case (Conflict of Interest)"
+                  },
+                  {
+                    "option": "Keep On Hold (Pending Further Review)"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Conflict Resolution Comments / Notes",
+              "fieldType": "textarea",
+              "placeholder": "Enter justification, waiver details, or reasons for approval / decline..."
+            }
+          ]
+        },
+        "options": {
+          "formTitle": "Case Matter Intelligence & Vault",
+          "formDescription": "Review matter intelligence, digital vault, conflict status, and submit administrative decision.",
+          "buttonLabel": "Submit Case Review & Decision ➔",
+          "customCss": "input[type=\"text\"],\ninput.form-control,\n#field-0, #field-1, #field-2, #field-3, #field-4, #field-5, #field-6, #field-7, #field-8, #field-9,\ninput[name=\"Case ID\"],\ninput[name=\"Client Name\"],\ninput[name=\"Adverse Party\"],\ninput[name=\"Current Legal Stage\"],\ninput[name=\"Assigned Advocate\"],\ninput[name=\"Court / Bench Name\"],\ninput[name=\"Court Date\"],\ninput[name=\"Court Time\"],\ninput[name=\"Statutory Deadline\"],\ninput[name=\"Statutory Due Date\"] {\n  pointer-events: none !important;\n  background-color: #f1f5f9 !important;\n  color: #334155 !important;\n  cursor: not-allowed !important;\n  border: 1px solid #cbd5e1 !important;\n  user-select: none !important;\n  -webkit-user-select: none !important;\n}\n\nselect, select.form-control, .form-group select {\n  pointer-events: auto !important;\n  cursor: pointer !important;\n  background-color: #ffffff !important;\n}\n\ntextarea, textarea.form-control, .form-group textarea {\n  pointer-events: auto !important;\n  cursor: text !important;\n  background-color: #ffffff !important;\n}"
+        }
+      },
+      "id": "35faa4ec-fcf0-485e-bf5b-f3fafcee49e9",
+      "name": "View Case Matter & AI Intelligence Form",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        -1104,
+        672
+      ],
+      "webhookId": "579e47e3-10b6-46af-8430-39987dcea58f"
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "Review & Conflict Decision Recorded",
+        "completionMessage": "=<h3>✅ Case Review & Conflict Decision Recorded</h3>\n<p>Case Reference: <strong>#{{ $('Verify Case Directory').first().json.case_id }}</strong> ({{ $('Verify Case Directory').first().json.client_name }})</p>\n<div style=\"background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 14px; margin: 14px 0;\">\n  <p style=\"margin: 0 0 6px 0;\"><strong>Review Decision:</strong> <span style=\"font-weight: bold; color: {{ ($('View Case Matter & AI Intelligence Form').first().json['Conflict Review Decision'] || '').includes('Approve') ? '#16a34a' : '#dc2626' }};\">{{ $('View Case Matter & AI Intelligence Form').first().json['Conflict Review Decision'] || 'Approved / Active' }}</span></p>\n  <p style=\"margin: 0 0 6px 0;\"><strong>Case Status:</strong> <code style=\"padding: 2px 6px; background: #e2e8f0; border-radius: 4px;\">{{ ($('View Case Matter & AI Intelligence Form').first().json['Conflict Review Decision'] || '').includes('Approve') ? 'active' : (($('View Case Matter & AI Intelligence Form').first().json['Conflict Review Decision'] || '').includes('Decline') ? 'closed' : $('Verify Case Directory').first().json.case_status) }}</code></p>\n  {{ $('View Case Matter & AI Intelligence Form').first().json['Conflict Resolution Comments / Notes'] ? ('<p style=\"margin: 0; font-size: 13px; color: #475569;\"><strong>Comments / Justification:</strong> ' + $('View Case Matter & AI Intelligence Form').first().json['Conflict Resolution Comments / Notes'] + '</p>') : '' }}\n</div>\n<p style=\"font-size: 13px; color: #64748b;\">The decision has been recorded in the case directory and audit notifications dispatched.</p>",
+        "options": {
+          "formTitle": "Case Review Complete"
+        }
+      },
+      "id": "f32f59a4-8bd2-4d89-a711-802b0c8faef1",
+      "name": "Case Review Complete Screen",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        -208,
+        672
+      ],
+      "webhookId": "75f0d8da-beda-4d32-8d16-4b5962939aa1"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $vars.TABLE_CASE_DIRECTORY || 'PFF0bSgccDIC5E5T' }}"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "case_id",
+              "condition": "ilike",
+              "keyValue": "={{ $('Verify Case Directory').first().json.case_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "document_url": "={{ ($('Verify Case Directory').first().json.case_id === '686058' && ($('Verify Case Directory').first().json.document_url || '').includes('docs.google.com')) ? 'https://drive.google.com/file/d/1Kc3CyJMjxSeYHmTjJpmMNi3MAGN09vnN/view?usp=drivesdk' : $('Verify Case Directory').first().json.document_url }}",
+            "urgency_level": "={{ $json['Urgency Level'] }}",
+            "hearing_date": "={{ $json['Court Date (Read-Only)'] || $json['Court Date'] || $('Verify Case Directory').first().json.hearing_date || '' }}",
+            "hearing_time": "={{ ($json['Court Time (Read-Only)'] === 'Not Scheduled Yet' || $json['Court Time'] === 'Not Scheduled Yet') ? '' : ($json['Court Time (Read-Only)'] || $json['Court Time'] || $('Verify Case Directory').first().json.hearing_time || '') }}",
+            "jotter_url": "={{ $('Verify Case Directory').first().json.jotter_url || '' }}",
+            "case_status": "={{ $json['Conflict Review Decision'] ? ($json['Conflict Review Decision'].includes('Approve') ? 'active' : ($json['Conflict Review Decision'].includes('Decline') ? 'closed' : $('Verify Case Directory').first().json.case_status)) : $('Verify Case Directory').first().json.case_status }}",
+            "conflict_status": "={{ $json['Conflict Review Decision'] ? ($json['Conflict Review Decision'].includes('Approve') ? 'Clear (Approved by Admin)' : ($json['Conflict Review Decision'].includes('Decline') ? 'Declined (Conflict)' : $('Verify Case Directory').first().json.conflict_status)) : $('Verify Case Directory').first().json.conflict_status }}",
+            "legal_proceeding_stage": "={{ $json['Conflict Review Decision'] ? ($json['Conflict Review Decision'].includes('Approve') ? 'paper filed' : ($json['Conflict Review Decision'].includes('Decline') ? 'declined' : $('Verify Case Directory').first().json.legal_proceeding_stage)) : $('Verify Case Directory').first().json.legal_proceeding_stage }}",
+            "notes": "={{ $json['Conflict Resolution Comments / Notes'] ? ('[Conflict Review - ' + ($json['Conflict Review Decision'] || 'Decision') + ']: ' + $json['Conflict Resolution Comments / Notes'] + ' | ' + ($('Verify Case Directory').first().json.notes || '')) : ($('Verify Case Directory').first().json.notes || '') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "case_id",
+              "displayName": "case_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "case_owner_email",
+              "displayName": "case_owner_email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "firm_admin_email",
+              "displayName": "firm_admin_email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "legal_proceeding_stage",
+              "displayName": "legal_proceeding_stage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "case_status",
+              "displayName": "case_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "client_name",
+              "displayName": "client_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "advocate_id",
+              "displayName": "advocate_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "advocate_name",
+              "displayName": "advocate_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "advocate_email",
+              "displayName": "advocate_email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "court_name",
+              "displayName": "court_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "hearing_date",
+              "displayName": "hearing_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "hearing_time",
+              "displayName": "hearing_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "location",
+              "displayName": "location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "address",
+              "displayName": "address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "pincode",
+              "displayName": "pincode",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "document_url",
+              "displayName": "document_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "document_title",
+              "displayName": "document_title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "document_category",
+              "displayName": "document_category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "document_summary",
+              "displayName": "document_summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "urgency_level",
+              "displayName": "urgency_level",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "adverse_party",
+              "displayName": "adverse_party",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "conflict_status",
+              "displayName": "conflict_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "conflict_details",
+              "displayName": "conflict_details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "engagement_url",
+              "displayName": "engagement_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "jotter_url",
+              "displayName": "jotter_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "9da89570-fb98-4e71-aac2-9c31010a7fae",
+      "name": "Update Urgency in Case Directory",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -880,
+        672
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ [$('Verify Case Directory').first().json.advocate_email, $('Verify Case Directory').first().json.case_owner_email].filter(Boolean).join(', ') || $vars.FIRM_ADMIN_EMAIL }}",
+        "subject": "={{ '⚖️ [CASE REVIEW & DECISION] Case #' + $('Verify Case Directory').first().json.case_id + ' - ' + ($('View Case Matter & AI Intelligence Form').first().json['Conflict Review Decision'] || 'Review Completed') }}",
+        "message": "=<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #cbd5e1; border-radius: 8px; color: #1e293b;\"><div style=\"background: #0f172a; color: #ffffff; padding: 16px 20px; border-radius: 6px;\"><h3 style=\"margin: 0; font-size: 18px;\">⚖️ Case Review & Conflict Decision Recorded</h3><p style=\"margin: 4px 0 0 0; font-size: 13px; opacity: 0.8;\">Case Reference: #{{ $('Verify Case Directory').first().json.case_id }} &bull; {{ $('Verify Case Directory').first().json.client_name }}</p></div><div style=\"padding: 20px 0;\"><p style=\"font-size: 14px; margin: 0 0 14px 0;\">This is an automated safety alert notifying the legal administration of a case review & conflict decision:</p><div style=\"background: #f8fafc; border-left: 4px solid #16a34a; padding: 14px 16px; border-radius: 4px; margin-bottom: 16px;\"><table style=\"width: 100%; border-collapse: collapse; font-size: 13px;\"><tr><td style=\"color: #64748b; padding: 4px 0; width: 35%;\"><strong>Decision:</strong></td><td><strong>{{ $('View Case Matter & AI Intelligence Form').first().json['Conflict Review Decision'] }}</strong></td></tr><tr><td style=\"color: #64748b; padding: 4px 0;\"><strong>Urgency Level:</strong></td><td><strong>{{ $('View Case Matter & AI Intelligence Form').first().json['Urgency Level'] }}</strong></td></tr><tr><td style=\"color: #64748b; padding: 4px 0;\"><strong>Notes / Comments:</strong></td><td>{{ $('View Case Matter & AI Intelligence Form').first().json['Conflict Resolution Comments / Notes'] || 'None' }}</td></tr><tr><td style=\"color: #64748b; padding: 4px 0;\"><strong>Reviewed By:</strong></td><td>{{ $('Invoice Event').first().json['User Type'] || 'Firm Administrator' }}</td></tr></table></div></div></div>",
+        "options": {
+          "ccList": "={{ $vars.FIRM_ADMIN_EMAIL }}"
+        }
+      },
+      "id": "510633ff-2ac9-4c33-8211-595cb9df2553",
+      "name": "Send Urgency Audit Safety Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -656,
+        672
+      ],
+      "webhookId": "f47f618f-ed78-419c-b9cb-0704a8a3130b",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "sVmGKpNsTs1T3jnJ",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $vars.TABLE_WORKFLOW_HISTORY || 'zLUIArHa9Po3oyoW' }}"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "case_id": "={{ $('Verify Case Directory').first().json.case_id }}",
+            "decision": "urgency_level_updated",
+            "decision_by": "={{ $('Search Criteria').first().json.search_email }}",
+            "final_status": "={{ 'Urgency: ' + $('View Case Matter & AI Intelligence Form').first().json['Urgency Level'] }}",
+            "invoice_id": "={{ 'URGENCY-' + $('Verify Case Directory').first().json.case_id }}",
+            "outcome_status": "={{ 'Changed from ' + ($('Verify Case Directory').first().json.urgency_level || 'Medium') + ' to ' + $('View Case Matter & AI Intelligence Form').first().json['Urgency Level'] }}",
+            "requester_name": "={{ $('Verify Case Directory').first().json.client_name }}",
+            "requester_role": "={{ $('Invoice Event').first().json['User Type'] || 'Advocate' }}",
+            "updated_by": "urgency-safety-gate"
+          }
+        },
+        "options": {}
+      },
+      "id": "f40f79e1-6ab8-4c36-a7b2-8dab2a2f8d91",
+      "name": "Log Urgency Audit to History",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -432,
+        672
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "cachedResultName": "workflow_history",
+          "mode": "id",
+          "value": "={{ $vars.TABLE_WORKFLOW_HISTORY || 'zLUIArHa9Po3oyoW' }}"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "case_id",
+              "condition": "ilike",
+              "keyValue": "={{ $('Invoice Payload').first().json.case_id }}"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "id": "c348a18f-b353-4247-8cba-eb0122ce2a0a",
+      "name": "Get Existing Invoices for Case",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -1936,
+        624
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "gsi_1",
+              "name": "invoice_id",
+              "type": "string",
+              "value": "={{ (() => { const caseId = ($('Invoice Payload').first().json.case_id || '').toString().trim(); const existingRows = $('Get Existing Invoices for Case').all() || []; const seqNums = existingRows.map(r => (r.json?.invoice_id || '').toString().trim()).filter(id => id.startsWith('INV-' + caseId + '-')).map(id => { const parts = id.split('-'); const num = parseInt(parts[parts.length - 1], 10); return isNaN(num) ? 0 : num; }); const maxSeq = seqNums.length > 0 ? Math.max(...seqNums) : 0; return 'INV-' + caseId + '-' + String(maxSeq + 1).padStart(2, '0'); })() }}"
+            },
+            {
+              "id": "gsi_2",
+              "name": "amount",
+              "type": "number",
+              "value": "={{ Number($('Invoice Payload').first().json.amount) }}"
+            },
+            {
+              "id": "gsi_3",
+              "name": "case_id",
+              "type": "string",
+              "value": "={{ $('Invoice Payload').first().json.case_id }}"
+            },
+            {
+              "id": "gsi_4",
+              "name": "requester_name",
+              "type": "string",
+              "value": "={{ $('Invoice Payload').first().json.requester_name }}"
+            },
+            {
+              "id": "gsi_5",
+              "name": "requester_role",
+              "type": "string",
+              "value": "={{ $('Invoice Payload').first().json.requester_role }}"
+            },
+            {
+              "id": "gsi_6",
+              "name": "notify_email",
+              "type": "string",
+              "value": "={{ $('Check Case Status for Invoice').first().json.case_owner_email || $('Check Case Status for Invoice').first().json.firm_admin_email || $vars.FIRM_ADMIN_EMAIL }}"
+            },
+            {
+              "id": "gsi_7",
+              "name": "created_at",
+              "type": "string",
+              "value": "={{ $('Invoice Payload').first().json.created_at }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "dd5145c1-6c67-4254-91ec-affd2125fabf",
+      "name": "Generate Sequential Invoice ID",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -1712,
+        624
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Select What to View",
+              "fieldType": "dropdown",
+              "defaultValue": "View Case Details",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "View Case Details"
+                  },
+                  {
+                    "option": "View Invoice"
+                  }
+                ]
+              },
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "formTitle": "Case & Invoice Portal",
+          "formDescription": "Step 3 — Select whether you want to view case matter details or billing invoices.",
+          "buttonLabel": "Proceed to View ➔"
+        }
+      },
+      "id": "98541f69-a3f2-4883-9f88-18ff9194950d",
+      "name": "Select View Mode Form",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        -3280,
+        752
+      ],
+      "webhookId": "10d5806a-feea-4938-a9c5-b469e56b2d17"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "id": "view-invoice-check",
+              "leftValue": "={{ ($json['Select What to View'] || '').toString().toLowerCase().includes('invoice') }}",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              },
+              "rightValue": true
+            }
+          ],
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "7a812651-e5c2-44b3-a877-3d3ad9709a6e",
+      "name": "Is View Invoice?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -3056,
+        752
+      ]
+    },
+    {
+      "parameters": {
+        "defineForm": "json",
+        "jsonOutput": "={{ (() => {\n  const userType = ($('Invoice Event').first().json['User Type'] || '').trim();\n  const isFirmAdmin = userType === 'Firm Administrator';\n  const fields = [\n    {\n      fieldLabel: \"Case ID\",\n      placeholder: \"e.g. 332312, 864536, 996178\",\n      requiredField: true\n    }\n  ];\n  if (!isFirmAdmin) {\n    fields.push({\n      fieldLabel: \"Notify Email\",\n      fieldType: \"email\",\n      placeholder: \"Enter your assigned Advocate Email\",\n      requiredField: true\n    });\n  }\n  return JSON.stringify(fields);\n})() }}",
+        "options": {
+          "formTitle": "View Case Details",
+          "formDescription": "={{ $('Invoice Event').first().json['User Type'] === 'Firm Administrator' ? 'Enter the Case ID to view case matter intelligence.' : 'Enter the Case ID and your registered email to view case matter intelligence.' }}",
+          "buttonLabel": "Fetch Case Intelligence ➔"
+        }
+      },
+      "id": "f7c27d70-4003-4009-81ff-72da442e11a3",
+      "name": "Search Case Form",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        -2816,
+        1280
+      ],
+      "webhookId": "8dfa7f65-7f1c-410d-b83f-511b444060d1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ (() => { if ($('Advocate Case Update Form').isExecuted) return ($('Advocate Case Update Form').first().json['Statutory Deadline'] || 'None').trim(); if ($('Firm Admin Case Update Form').isExecuted) return ($('Firm Admin Case Update Form').first().json['Statutory Deadline'] || 'None').trim(); if ($('Assign Advocate Form').isExecuted) return ($('Assign Advocate Form').first().json['Statutory Deadline'] || 'None').trim(); return 'None'; })() }}",
+              "operator": {
+                "operation": "notEquals",
+                "type": "string"
+              },
+              "rightValue": "None"
+            }
+          ],
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          }
+        },
+        "options": {}
+      },
+      "id": "e3e60091-76f4-4938-80f6-f0d2c4054f42",
+      "name": "Has Statutory Deadline?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -208,
+        1344
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "LK7BkDQqwXqLVBKC"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "action": "register",
+            "advocate_email": "={{ (($('Advocate Case Update Form').isExecuted ? $('Advocate Case Update Form').first().json['Advocate Email'] : ($('Firm Admin Case Update Form').isExecuted ? $('Firm Admin Case Update Form').first().json['Advocate Email'] : ($('Assign Advocate Form').isExecuted ? $('Assign Advocate Form').first().json['Advocate Email'] : ''))) || '').trim() || $('Verify Case Directory').first().json.advocate_email || $vars.FIRM_ADMIN_EMAIL }}",
+            "case_id": "={{ Number($('Verify Case Directory').first().json.case_id) }}",
+            "deadline_name": "={{ $('Advocate Case Update Form').isExecuted ? $('Advocate Case Update Form').first().json['Statutory Deadline'] : ($('Firm Admin Case Update Form').isExecuted ? $('Firm Admin Case Update Form').first().json['Statutory Deadline'] : ($('Assign Advocate Form').isExecuted ? $('Assign Advocate Form').first().json['Statutory Deadline'] : 'None')) }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "7a5dd40c-08e9-4a64-87d3-49a1127dad7e",
+      "name": "Execute Statutory Deadline Sub-workflow",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        16,
+        1280
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl\"": true,
+          "mode": "id",
+          "value": "={{ $vars.TABLE_STATUTORY_DEADLINES || 'L9EoptHRpRqqpkJH' }}",
+          "__rl": true
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "case_id",
+              "keyValue": "={{ Number($('Verify Case Directory').first().json.case_id) }}"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "id": "7374efad-0f18-4c56-9a3e-a5482cdb0d1c",
+      "name": "Fetch Statutory Deadlines for View",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -1328,
+        672
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "client-name-match-check",
+              "leftValue": "={{ Boolean($('Check Case Status for Invoice').first().json.client_name) && ($('Invoice Payload').first().json.requester_name || '').toString().trim().toLowerCase() === ($('Check Case Status for Invoice').first().json.client_name || '').toString().trim().toLowerCase() }}",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              },
+              "rightValue": true
+            }
+          ],
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          }
+        },
+        "options": {}
+      },
+      "id": "6f280bb7-cc8c-48ff-bf03-3583af4c3bc5",
+      "name": "Is Client Name Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -2160,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "Invalid Requester Name",
+        "completionMessage": "Invalid requester name",
+        "options": {
+          "formTitle": "Invalid Requester Name"
+        }
+      },
+      "id": "01eccc5d-1f30-48d1-bbf8-514715afcc8e",
+      "name": "Client Name Not Appropriate",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        -1936,
+        816
+      ],
+      "webhookId": "247a9c55-aa51-4282-af2c-050ac12e8a00"
+    },
+    {
+      "parameters": {
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Select Action",
+              "fieldType": "dropdown",
+              "defaultValue": "View Invoice",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "View Invoice"
+                  },
+                  {
+                    "option": "Download Invoice"
+                  }
+                ]
+              },
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "formDescription": "Step 3 — Select whether you want to view your invoice online in Google Drive or download a certified PDF copy via email.",
+          "buttonLabel": "Continue to Case Verification ➔"
+        }
+      },
+      "id": "b844ca82-93e1-45da-9669-79f977dce7e2",
+      "name": "Select Client Action Form",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        -3184,
+        1376
+      ],
+      "webhookId": "788a0564-387d-43ff-98c0-9d5da0947c2e"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c-has-conflict",
+              "leftValue": "={{ Boolean($json.has_conflict) }}",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              },
+              "rightValue": ""
+            }
+          ],
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          }
+        },
+        "options": {}
+      },
+      "id": "91047eea-d8d4-447a-9517-0a79a1191c4d",
+      "name": "Has Intake Conflict?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -2608,
+        1808
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "Conflict of Interest Detected",
+        "completionMessage": "=<h3>⚠️ Conflict of Interest Detected</h3><p style=\"font-size: 16px; margin-top: 12px; color: #1e293b;\"><strong>Conflict of interest detected — Case #{{ $json.case_id }} is pending approval.</strong></p>",
+        "options": {
+          "formTitle": "Conflict of Interest Detected"
+        }
+      },
+      "id": "5eb66aad-b6f3-4d19-a783-5710dd982165",
+      "name": "Conflict Review Pending Screen",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        -2384,
+        1712
+      ],
+      "webhookId": "aff34d47-f453-464d-bd6c-12605f52a976"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c-is-advocate",
+              "leftValue": "={{ ($('Invoice Event').first().json['User Type'] || '').toString().toLowerCase().trim() }}",
+              "operator": {
+                "operation": "equals",
+                "type": "string"
+              },
+              "rightValue": "advocate"
+            }
+          ],
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          }
+        },
+        "options": {}
+      },
+      "id": "c055e423-e2bd-491a-ac43-668caa996e82",
+      "name": "Is Advocate User?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -880,
+        1536
+      ]
+    },
+    {
+      "parameters": {
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Legal Proceeding Stage",
+              "fieldType": "dropdown",
+              "defaultValue": "={{ $('Verify Case Directory').first().json.legal_proceeding_stage === 'onboarding' ? 'paper filed' : ($('Verify Case Directory').first().json.legal_proceeding_stage || 'paper filed') }}",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "paper filed"
+                  },
+                  {
+                    "option": "hearing"
+                  },
+                  {
+                    "option": "under-trial"
+                  },
+                  {
+                    "option": "final judgment"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Advocate ID",
+              "placeholder": "e.g. ADV-101",
+              "defaultValue": "={{ $('Verify Case Directory').first().json.advocate_id || '' }}"
+            },
+            {
+              "fieldLabel": "Advocate Name",
+              "placeholder": "e.g. Adv. Vikram Seth",
+              "defaultValue": "={{ $('Verify Case Directory').first().json.advocate_name || '' }}"
+            },
+            {
+              "fieldLabel": "Advocate Email",
+              "placeholder": "e.g. advocate@lawfirm.com",
+              "defaultValue": "={{ $('Verify Case Directory').first().json.advocate_email || '' }}"
+            },
+            {
+              "fieldLabel": "Court / Bench Name",
+              "placeholder": "e.g. District & Sessions Court, Courtroom 4",
+              "defaultValue": "={{ $('Verify Case Directory').first().json.court_name || '' }}"
+            },
+            {
+              "fieldLabel": "Hearing / Court Date",
+              "fieldType": "date",
+              "defaultValue": "={{ (() => { const d = $('Verify Case Directory').first().json.hearing_date; if (!d) return ''; if (/^\\d{4}-\\d{2}-\\d{2}$/.test(d)) return d; const p = d.split('/'); if (p.length === 3) { return (p[2].length === 2 ? '20' + p[2] : p[2]) + '-' + p[1].padStart(2, '0') + '-' + p[0].padStart(2, '0'); } return d; })() }}"
+            },
+            {
+              "fieldLabel": "Hearing Time",
+              "fieldType": "dropdown",
+              "defaultValue": "={{ (() => { const t = ($('Verify Case Directory').first().json.hearing_time || '11:00 AM').toUpperCase().trim(); const opts = ['10:00 AM','10:30 AM','11:00 AM','11:30 AM','12:00 PM','12:30 PM','01:00 PM','01:30 PM','02:00 PM','02:30 PM','03:00 PM','03:30 PM','04:00 PM','04:30 PM','05:00 PM']; return opts.find(o => o.toLowerCase() === t.toLowerCase()) || '11:00 AM'; })() }}",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "10:00 AM"
+                  },
+                  {
+                    "option": "10:30 AM"
+                  },
+                  {
+                    "option": "11:00 AM"
+                  },
+                  {
+                    "option": "11:30 AM"
+                  },
+                  {
+                    "option": "12:00 PM"
+                  },
+                  {
+                    "option": "12:30 PM"
+                  },
+                  {
+                    "option": "01:00 PM"
+                  },
+                  {
+                    "option": "01:30 PM"
+                  },
+                  {
+                    "option": "02:00 PM"
+                  },
+                  {
+                    "option": "02:30 PM"
+                  },
+                  {
+                    "option": "03:00 PM"
+                  },
+                  {
+                    "option": "03:30 PM"
+                  },
+                  {
+                    "option": "04:00 PM"
+                  },
+                  {
+                    "option": "04:30 PM"
+                  },
+                  {
+                    "option": "05:00 PM"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Statutory Deadline",
+              "fieldType": "dropdown",
+              "defaultValue": "None",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "None"
+                  },
+                  {
+                    "option": "Written Statement"
+                  },
+                  {
+                    "option": "Rejoinder / Reply"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Milestone Remarks",
+              "placeholder": "e.g. Cause list issued, preliminary arguments scheduled"
+            },
+            {
+              "fieldLabel": "Send Milestone Notification Email",
+              "fieldType": "dropdown",
+              "defaultValue": "Yes",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Yes"
+                  },
+                  {
+                    "option": "No"
+                  }
+                ]
+              },
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "formTitle": "={{ 'Case #' + $('Verify Case Directory').first().json.case_id + ' - Proceeding Schedule (Advocate)' }}",
+          "formDescription": "={{ 'Client: ' + ($('Verify Case Directory').first().json.client_name || 'Client') + ' (' + $('Verify Case Directory').first().json.case_owner_email + ') | Update proceeding stage, court schedule, and milestone remarks.' }}",
+          "buttonLabel": "Save Proceeding Updates & Notify Client ➔",
+          "customCss": "input[name*=\"Read-Only\"],\ninput[name*=\"read-only\"] {\n  pointer-events: none !important;\n  background-color: #f1f3f5 !important;\n  color: #6c757d !important;\n  cursor: not-allowed !important;\n  border: 1px solid #ced4da !important;\n  user-select: none !important;\n}\n\ninput[name=\"Milestone Remarks\"],\ntextarea[name=\"Milestone Remarks\"],\ninput[placeholder*=\"Cause list\"],\ninput[name=\"Advocate ID\"],\ninput[name=\"Advocate Name\"],\ninput[name=\"Advocate Email\"],\ninput[name=\"Court / Bench Name\"],\ninput[name=\"Hearing / Court Date\"] {\n  pointer-events: auto !important;\n  background-color: #ffffff !important;\n  color: #1e293b !important;\n  cursor: text !important;\n  user-select: auto !important;\n}"
+        }
+      },
+      "id": "83acb5e4-bf5e-481e-808f-100f09a5a7da",
+      "name": "Advocate Case Update Form",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        -656,
+        1440
+      ],
+      "webhookId": "694ca766-0211-4cc2-8d5a-c543637161bb"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Has Permission": {
+      "main": [
+        [
+          {
+            "node": "Is Client Role?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Permission Denied",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Invoice Details": {
+      "main": [
+        [
+          {
+            "node": "Invoice Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Invoice Payload": {
+      "main": [
+        [
+          {
+            "node": "Is Generate Action?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Generate Action?": {
+      "main": [
+        [
+          {
+            "node": "Check Case Status for Invoice",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Done",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select Action": {
+      "main": [
+        [
+          {
+            "node": "Action Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Action Router": {
+      "main": [
+        [
+          {
+            "node": "Invoice Details",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Select View Mode Form",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Case Closure Form",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Administrative Waiver Form",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Search Invoices Form",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Action Not Supported",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Invoices Form": {
+      "main": [
+        [
+          {
+            "node": "Search Criteria",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Criteria": {
+      "main": [
+        [
+          {
+            "node": "Verify Case Directory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Case Directory": {
+      "main": [
+        [
+          {
+            "node": "Is Authorized Case Contact?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Authorized Case Contact?": {
+      "main": [
+        [
+          {
+            "node": "Is Update Action?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Access Denied Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Case Invoices": {
+      "main": [
+        [
+          {
+            "node": "Any Invoices Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Any Invoices Found?": {
+      "main": [
+        [
+          {
+            "node": "Has Single or Specific Invoice?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Invoices Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Single or Specific Invoice?": {
+      "main": [
+        [
+          {
+            "node": "Prepare Invoice Record",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Select Invoice Form",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select Invoice Form": {
+      "main": [
+        [
+          {
+            "node": "Prepare Invoice Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Permission": {
+      "main": [
+        [
+          {
+            "node": "Has Permission",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Case Closure Form": {
+      "main": [
+        [
+          {
+            "node": "Execute Case Closure Sub-workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Case Closure Sub-workflow": {
+      "main": [
+        [
+          {
+            "node": "Case Closure Completed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Case Status for Invoice": {
+      "main": [
+        [
+          {
+            "node": "Is Case Closed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Case Closed?": {
+      "main": [
+        [
+          {
+            "node": "Send Case Closed Blocker Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is Client Name Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Case Closed Blocker Email": {
+      "main": [
+        [
+          {
+            "node": "Case Closed Blocker Screen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Case Waiver Sub-workflow": {
+      "main": [
+        [
+          {
+            "node": "Case Waiver Completed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Update Action?": {
+      "main": [
+        [
+          {
+            "node": "Fetch Invoices for Case Update",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is View Action?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Invoices for Case Update": {
+      "main": [
+        [
+          {
+            "node": "Is Initial Advocate Assignment?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Initial Advocate Assignment?": {
+      "main": [
+        [
+          {
+            "node": "Initial Advocate Assignment Form",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is Advocate User?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Client Status": {
+      "main": [
+        [
+          {
+            "node": "Select Client Action Form",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Client Onboarding Form",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Invoice Event": {
+      "main": [
+        [
+          {
+            "node": "Validate Permission",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Client Role?": {
+      "main": [
+        [
+          {
+            "node": "Client Status Form",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Select Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Client Status Form": {
+      "main": [
+        [
+          {
+            "node": "Route Client Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Client Onboarding Form": {
+      "main": [
+        [
+          {
+            "node": "Execute Sub-workflow: Client Onboarding",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Sub-workflow: Client Onboarding": {
+      "main": [
+        [
+          {
+            "node": "Is Registration Successful?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Registration Successful?": {
+      "main": [
+        [
+          {
+            "node": "Has Intake Conflict?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Duplicate Intake Notice Screen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Initial Advocate Assignment Form": {
+      "main": [
+        [
+          {
+            "node": "Is Case Accepted?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Case Accepted?": {
+      "main": [
+        [
+          {
+            "node": "Assign Advocate Form",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Decline Case Form",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assign Advocate Form": {
+      "main": [
+        [
+          {
+            "node": "Execute Advocate Case Assignment Sub-workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decline Case Form": {
+      "main": [
+        [
+          {
+            "node": "Execute Advocate Case Assignment Sub-workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Invoice Multi-Tier Approval Engine": {
+      "main": [
+        [
+          {
+            "node": "Done",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Administrative Waiver Form": {
+      "main": [
+        [
+          {
+            "node": "Execute Case Waiver Sub-workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is View Action?": {
+      "main": [
+        [
+          {
+            "node": "Fetch Statutory Deadlines for View",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Case Invoices",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "View Case Matter & AI Intelligence Form": {
+      "main": [
+        [
+          {
+            "node": "Update Urgency in Case Directory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Urgency in Case Directory": {
+      "main": [
+        [
+          {
+            "node": "Send Urgency Audit Safety Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Urgency Audit Safety Email": {
+      "main": [
+        [
+          {
+            "node": "Log Urgency Audit to History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Urgency Audit to History": {
+      "main": [
+        [
+          {
+            "node": "Case Review Complete Screen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Existing Invoices for Case": {
+      "main": [
+        [
+          {
+            "node": "Generate Sequential Invoice ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Sequential Invoice ID": {
+      "main": [
+        [
+          {
+            "node": "Execute Invoice Multi-Tier Approval Engine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select View Mode Form": {
+      "main": [
+        [
+          {
+            "node": "Is View Invoice?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is View Invoice?": {
+      "main": [
+        [
+          {
+            "node": "Search Invoices Form",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Search Case Form",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Case Form": {
+      "main": [
+        [
+          {
+            "node": "Search Criteria",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Advocate Case Assignment Sub-workflow": {
+      "main": [
+        [
+          {
+            "node": "Has Statutory Deadline?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Statutory Deadline?": {
+      "main": [
+        [
+          {
+            "node": "Execute Statutory Deadline Sub-workflow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Case Complete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Statutory Deadline Sub-workflow": {
+      "main": [
+        [
+          {
+            "node": "Update Case Complete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Statutory Deadlines for View": {
+      "main": [
+        [
+          {
+            "node": "View Case Matter & AI Intelligence Form",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Client Name Valid?": {
+      "main": [
+        [
+          {
+            "node": "Get Existing Invoices for Case",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Client Name Not Appropriate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Action Switch": {
+      "main": [
+        [
+          {
+            "node": "View Invoice in Google Docs",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Download Invoice File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Invoice Record": {
+      "main": [
+        [
+          {
+            "node": "Dispatch Invoice Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dispatch Invoice Document": {
+      "main": [
+        [
+          {
+            "node": "Action Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select Client Action Form": {
+      "main": [
+        [
+          {
+            "node": "Search Invoices Form",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Intake Conflict?": {
+      "main": [
+        [
+          {
+            "node": "Conflict Review Pending Screen",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Registration Success Screen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Firm Admin Case Update Form": {
+      "main": [
+        [
+          {
+            "node": "Execute Advocate Case Assignment Sub-workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Advocate User?": {
+      "main": [
+        [
+          {
+            "node": "Advocate Case Update Form",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Firm Admin Case Update Form",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Advocate Case Update Form": {
+      "main": [
+        [
+          {
+            "node": "Execute Advocate Case Assignment Sub-workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "Dvao8HFN2GnGuaQZ"
+  },
+  "versionId": "a075a765-c4be-4c9f-86a0-e8f235c4a1b2",
+  "meta": {
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp",
+    "instanceId": "1b7f2b8bd7379ce28884aabf2215f3c90ff32a7e4c4f1088ddd7ce0532074b6f"
+  },
+  "nodeGroups": [
+    {
+      "id": "79e071d6-329c-4e54-8760-0cd0f2974f51",
+      "name": "Role Validation & Permission Gateway",
+      "nodeIds": [
+        "f6c44004-3f98-47dc-83bb-91b7b758348b",
+        "04f590c9-48ac-4d10-9469-ddeec0a7024f",
+        "bf024abf-093d-407f-911d-9438d745c844",
+        "c18d77fd-ccd6-49a0-a779-1fb272ed1d1c"
+      ],
+      "description": "Validates requester role against permissions matrix, enforces security gates, and routes clients vs staff."
+    },
+    {
+      "id": "d1bc3cbd-579e-40aa-a648-8b028f0efc7b",
+      "name": "Invoice Generation & Approval Pipeline",
+      "nodeIds": [
+        "feef2cb0-f2dd-4a16-9447-ea68e3ea4125",
+        "7249dd6d-ca6a-4f2e-84f5-d87a13c78c0f",
+        "15b5a660-16ce-4fa5-9a2e-363145422dfe",
+        "8de8314e-885a-4f02-8eb1-52c1668a7534",
+        "b6b181c6-8cea-4318-82ae-3f06b0d8f173",
+        "83ae3350-d6da-4b0a-a784-cac8f0bf6876",
+        "08daa6fb-9931-423a-a531-4b6393521794",
+        "6f280bb7-cc8c-48ff-bf03-3583af4c3bc5",
+        "01eccc5d-1f30-48d1-bbf8-514715afcc8e",
+        "c348a18f-b353-4247-8cba-eb0122ce2a0a",
+        "dd5145c1-6c67-4254-91ec-affd2125fabf",
+        "811f683d-dff8-4302-a911-f7f0904ac408",
+        "e5a40edd-f4b3-4653-889d-5e0b2026c48a"
+      ],
+      "description": "Captures invoice details, validates client name & case status, auto-generates sequential IDs, runs approvals, and logs to history."
+    },
+    {
+      "id": "74be492e-6008-4e23-a24c-9c5fcbb9da49",
+      "name": "Invoice Lookup & Document Generation",
+      "nodeIds": [
+        "fdf4e137-b056-403d-a5ff-5ae8eec91ed2",
+        "036e3ae5-a4e8-49f5-8b98-3158bf8e9d78",
+        "8c9f880f-a21a-428d-98e5-91ca58ca3885",
+        "346d81ea-680e-4de7-8d88-30429ab35633",
+        "a5e7d9b4-1b2f-422e-9c3a-a661b90278a1",
+        "f3633f09-21a0-42c5-af2e-ec038c460da9",
+        "30fd6f85-1609-4d73-bf95-151345a75cc6",
+        "43c7206e-4014-408d-bedf-329fba3f86bc",
+        "d07d40de-b828-48f2-b975-5469b89c3edf",
+        "c9bcdc40-dc02-4a71-990b-f262c620a598"
+      ],
+      "description": "Queries history, displays No Invoices or selector screen, generates certified PDF invoices, and provides view/download links."
+    },
+    {
+      "id": "e8a2b3d9-a9b4-4761-9535-7e692a80548f",
+      "name": "Case Intelligence, Vault & Urgency Safety Audit",
+      "nodeIds": [
+        "7374efad-0f18-4c56-9a3e-a5482cdb0d1c",
+        "35faa4ec-fcf0-485e-bf5b-f3fafcee49e9",
+        "9da89570-fb98-4e71-aac2-9c31010a7fae",
+        "510633ff-2ac9-4c33-8211-595cb9df2553",
+        "f40f79e1-6ab8-4c36-a7b2-8dab2a2f8d91",
+        "f32f59a4-8bd2-4d89-a711-802b0c8faef1"
+      ],
+      "description": "Fetches statutory clocks, displays case intelligence & vault docs, and logs urgency safety audits."
+    },
+    {
+      "id": "0e4e60d7-bd7f-48a9-a2f7-2cec610c2cf5",
+      "name": "Case Closure Guardrail",
+      "nodeIds": [
+        "43abb224-0fd4-42f2-9fa8-13a65007e2b4",
+        "29e921d2-bd81-41ef-aede-3be96deff2fa",
+        "dfa8fe66-5ebb-40bf-af0f-28236c2c2776"
+      ],
+      "description": "Captures closure requests and delegates financial blocker evaluations to Case Closure Guardrail."
+    },
+    {
+      "id": "e244c587-bb69-4d77-ae80-3c4dd0cab9c2",
+      "name": "Administrative Bill Waiver & Write-Off",
+      "nodeIds": [
+        "350bc6e3-3eb1-45b4-9cef-64c8c52b6d17",
+        "d9249157-2edf-4778-853a-5770ba92e60d",
+        "39adc931-d487-4fc8-8fcb-e1267d34eeb0"
+      ],
+      "description": "Enables administrator write-offs and delegates fee waivers to Case Closure Guardrail engine."
+    },
+    {
+      "id": "86ce4881-a057-4563-abfc-8780762d63fb",
+      "name": "View Target Selection & Router",
+      "nodeIds": [
+        "98541f69-a3f2-4883-9f88-18ff9194950d",
+        "7a812651-e5c2-44b3-a877-3d3ad9709a6e"
+      ],
+      "description": "Presents view target options and routes between case details and invoice lookup."
+    },
+    {
+      "id": "86bd5382-2d09-443b-8c06-7e91d89df993",
+      "name": "Advocate Assignment & Case Update Pipeline",
+      "nodeIds": [
+        "c178fa02-bdfa-448b-9f9a-2146416b77f6",
+        "4451602d-2a94-4fbb-bbcd-f11c055098ec",
+        "34fa29fa-6d46-41a7-97ce-76f8b29da413",
+        "e4d5ee00-bf18-4078-9873-0a36db1ff480",
+        "05330eda-099a-4f7c-b523-533591a55e43",
+        "c055e423-e2bd-491a-ac43-668caa996e82",
+        "83acb5e4-bf5e-481e-808f-100f09a5a7da",
+        "3ce9ed07-76d1-4152-b725-01858e07520f",
+        "4de93ade-480b-47e8-aafc-4289cd64190b",
+        "e3e60091-76f4-4938-80f6-f0d2c4054f42",
+        "7a5dd40c-08e9-4a64-87d3-49a1127dad7e",
+        "b4f0e9f6-33a6-4b51-9763-2bc0df02eb09"
+      ],
+      "description": "Handles initial advocate assignment and role-specific proceeding updates with statutory deadlines."
+    },
+    {
+      "id": "0badc44c-df22-49f6-b0ff-cc8b0a628244",
+      "name": "Client Onboarding & Intake Pipeline",
+      "nodeIds": [
+        "563b5bb6-12d1-42f1-b9a2-4ca7d8039577",
+        "056f6f29-f95b-4cdd-8009-7540d3355f66",
+        "0451b133-a2e4-4a78-ade4-d72c5f620d77",
+        "ef523bfa-f460-485f-8d4a-837534228163",
+        "91047eea-d8d4-447a-9517-0a79a1191c4d",
+        "5eb66aad-b6f3-4d19-a783-5710dd982165",
+        "21b2fca9-75ca-4e9a-83c2-18ff6b503b84"
+      ],
+      "description": "Handles new client matter registration, duplicate profile checks, and conflict status routing."
+    },
+    {
+      "id": "b7b0b8ad-bac5-4b20-b9df-86ebb7b300e7",
+      "name": "Case Directory Lookup Pipeline",
+      "nodeIds": [
+        "ce2f2397-01b7-4bea-83f8-2c85ededc027",
+        "b3162217-4601-4b60-923e-96e374276098"
+      ],
+      "description": "Normalizes query criteria and retrieves corresponding record from case directory."
+    }
+  ],
+  "id": "dy3FDTwxNO0eayT8",
+  "tags": []
+}

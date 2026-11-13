@@ -1,0 +1,138 @@
+{
+  "name": "Central Error & Incident Logger (Reusable)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "28710683-3b83-4dde-9042-72460abf1029",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f-exec-id",
+              "name": "execution_id",
+              "value": "={{ ($json.execution?.id || '').toString() }}",
+              "type": "string"
+            },
+            {
+              "id": "f-wf-name",
+              "name": "workflow_name",
+              "value": "={{ $json.workflow?.name || 'Unknown Workflow' }}",
+              "type": "string"
+            },
+            {
+              "id": "f-failed-node",
+              "name": "failed_node",
+              "value": "={{ $json.execution?.lastNodeExecuted || 'Unknown Node' }}",
+              "type": "string"
+            },
+            {
+              "id": "f-err-msg",
+              "name": "error_message",
+              "value": "={{ ($json.execution?.error?.message || 'Error occurred during execution').toString().slice(0, 1000) }}",
+              "type": "string"
+            },
+            {
+              "id": "f-exec-url",
+              "name": "execution_url",
+              "value": "={{ $json.execution?.url || ('https://sahil8249.app.n8n.cloud/execution/' + ($json.execution?.id || '')) }}",
+              "type": "string"
+            },
+            {
+              "id": "f-timestamp",
+              "name": "timestamp",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "83d74bf4-d6e7-4e73-921f-88d04a879610",
+      "name": "Format Error Details",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $vars.TABLE_SYSTEM_ERROR_LOGS || 'ODNbl3aB2K27RPXC' }}"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "execution_id": "={{ $json.execution_id }}",
+            "workflow_name": "={{ $json.workflow_name }}",
+            "failed_node": "={{ $json.failed_node }}",
+            "error_message": "={{ $json.error_message }}",
+            "execution_url": "={{ $json.execution_url }}",
+            "timestamp": "={{ $json.timestamp }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "93ef75ac-b561-4cd9-850f-5923761f2862",
+      "name": "Log to Error Table",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        448,
+        0
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Format Error Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Error Details": {
+      "main": [
+        [
+          {
+            "node": "Log to Error Table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "versionId": "3e737310-b335-43f8-90d6-759aa0ca27e1",
+  "meta": {
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp",
+    "instanceId": "1b7f2b8bd7379ce28884aabf2215f3c90ff32a7e4c4f1088ddd7ce0532074b6f"
+  },
+  "nodeGroups": [],
+  "id": "Dvao8HFN2GnGuaQZ",
+  "tags": []
+}
